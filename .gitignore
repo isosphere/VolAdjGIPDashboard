@@ -8,3 +8,4 @@
 config.json
 *.xlsx
 *.code-workspace
+*.sqlite3
