@@ -1,0 +1,10 @@
+*.pyc
+*.h5
+.env
+*.json
+.vscode/
+*.csv
+\.ipynb_checkpoints/
+config.json
+*.xlsx
+*.code-workspace
