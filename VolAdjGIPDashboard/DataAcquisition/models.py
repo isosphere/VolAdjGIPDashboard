@@ -47,7 +47,9 @@ class SecurityHistory(models.Model):
             
             for row in dataframe.itertuples():
                 date, close_price = row.Index, row.Close
-                cls.objects.get_or_create(date=date, close_price=close_price, ticker=security)
+                obj, created = cls.objects.get_or_create(date=date, ticker=security, defaults={'close_price':close_price})
+                obj.close_price = close_price
+                obj.save()
 
     @classmethod
     def equal_volatility_position(cls, tickers, lookback=252, target_value=10000, max_date=None):
