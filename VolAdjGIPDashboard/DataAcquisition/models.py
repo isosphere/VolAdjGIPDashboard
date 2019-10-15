@@ -73,8 +73,8 @@ class SecurityHistory(models.Model):
 
             dataframe = pd.DataFrame.from_records(results, columns=['date', 'close_price'], index='date', coerce_float=True)
             dataframe.index = pd.to_datetime(dataframe.index)
-            dataframe.sort_index()
-            
+            dataframe.sort_index(inplace=True, ascending=True)
+           
             # compute realized vol
             dataframe["log_return"] = np.log(dataframe.close_price) - np.log(dataframe.close_price.shift(1))
             dataframe["realized_vol"] = dataframe.log_return.rolling(lookback).std(ddof=0)
