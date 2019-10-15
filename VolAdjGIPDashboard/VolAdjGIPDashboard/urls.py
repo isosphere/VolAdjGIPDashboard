@@ -16,6 +16,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
+from UserInterface import views as UX
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', UX.index, name='index'),
+    path('<int:net_liquidating_value>', UX.index, name='index')
 ]
