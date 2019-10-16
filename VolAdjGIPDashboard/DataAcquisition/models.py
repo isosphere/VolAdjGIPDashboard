@@ -23,6 +23,9 @@ class SecurityHistory(models.Model):
         if start is None and not clobber:
             logger.info(f"start not specified with clobber mode disabled, will update since last record in database.")
 
+        if start is None and clobber:
+            start = datetime.date(2008, 1, 1)
+
         if tickers is None:
             tickers = cls.objects.all().values_list('ticker', flat=True).distinct()
             logger.info(f"No ticker specified, so using all distinct tickers in the database: {tickers}")
@@ -43,7 +46,7 @@ class SecurityHistory(models.Model):
                 dataframe = dataframe.drop('Close', axis=1).rename({"Adj Close": "Close"}, axis=1)
 
             if clobber:
-                cls.objects.filter(date__gte=start, date__lte=end).delete()
+                cls.objects.filter(date__gte=start, date__lte=end, ticker=security).delete()
             
             for row in dataframe.itertuples():
                 date, close_price = row.Index, row.Close
