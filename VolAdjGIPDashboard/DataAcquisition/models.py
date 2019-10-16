@@ -116,15 +116,30 @@ class SecurityHistory(models.Model):
         
         start_date = date_within_quarter - pd.offsets.QuarterEnd() + datetime.timedelta(days=1)
 
-        positioning = cls.equal_volatility_position(tickers, max_date=date_within_quarter - pd.offsets.QuarterEnd())
+        history = cls.objects.filter(ticker__in=tickers, date__gte=start_date, date__lte=date_within_quarter).order_by('date')
+        distinct_dates = history.values('date').distinct().values_list('date', flat=True)
+        
+        prior_positioning = None
+        prior_cost_basis = dict()
+        start_market_value = 10000
+        market_value = start_market_value
+        
+        for date in distinct_dates:
+            # liquidate
+            if prior_positioning is not None:
+                for leg in prior_positioning:
+                    market_value += prior_positioning[leg]*(history.get(ticker=leg, date=date).close_price - prior_cost_basis[leg])
+                    
+            # accumulate
+            new_positioning = cls.equal_volatility_position(tickers, max_date=date, target_value=market_value)
+            
+            prior_cost_basis = dict()
+            prior_positioning = new_positioning.copy()
 
-        start_market_value = 0
-        end_market_value = 0
-
-        # we're assuming the positioning stays constant, which is wrong
-        for leg in positioning:
-            start_market_value += positioning[leg]*cls.objects.filter(ticker=leg, date__gte=start_date).earliest('date').close_price
-            end_market_value += positioning[leg]*cls.objects.filter(ticker=leg, date__lte=date_within_quarter).latest('date').close_price
+            for leg in new_positioning:
+                prior_cost_basis[leg] = history.get(ticker=leg, date=date).close_price
+        
+        end_market_value = market_value
         
         return end_market_value / start_market_value - 1
 
