@@ -31,7 +31,7 @@
 
     <div class="container">
         <div class="row">
-            <div class="col-md">
+            <div class="col-sm">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Prior Quarter</h5>
@@ -57,32 +57,56 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Current Quarter</h5>
-                            <p class="card-text">
-                                <table class="table">
-                                    <thead class="thead-dark">
-                                        <tr>
-                                            <th>Quad</th>
-                                            <th>Return</th>
-                                        </tr>
-                                    </thead>
-                                    {% for quad, value in current_quarter_return.items %}
-                                    {% if value <= 0 %}
-                                    <tr class="text-danger">
-                                    {% else %}
-                                    <tr class="text-success">
-                                    {% endif %}
-                                        <td>{{quad}}</td><td>{{value}}%</td>
+            <div class="col-sm">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Current Quarter</h5>
+                        <p class="card-text">
+                            <table class="table">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>Quad</th>
+                                        <th>Return</th>
                                     </tr>
-                                    {% endfor %}
-                                </table>
-                            </p>
-                        </div>
+                                </thead>
+                                {% for quad, value in current_quarter_return.items %}
+                                {% if value <= 0 %}
+                                <tr class="text-danger">
+                                {% else %}
+                                <tr class="text-success">
+                                {% endif %}
+                                    <td>{{quad}}</td><td>{{value}}%</td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        </p>
                     </div>
                 </div>
+            </div>
+            <div class="col-xl">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Prices as of {{data_updated}} UTC</h5>
+                        <p class="card-text">
+                            <table class="table">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>Symbol</th>
+                                        <th>Price</th>
+                                        <th data-toggle="tooltip" data-placement="top" title="(over {{lookback}} trading days)">Realized Daily Volatility</th>
+                                        <th>1-STDEV Move</th>
+                                    </tr>
+                                </thead>
+                                {% for symbol, value in symbol_values.items %}
+                                <tr>                                
+                                    <td>{{symbol}}</td><td>${{value.0}}</td><td>{{value.1}}%</td><td>${{value.2}}</td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     <p class="lead">Current Equal-Volatility Allocations for ${{target_value}}</p>
@@ -113,6 +137,11 @@
 
     <!--JavaScript at end of body for optimized loading-->
     {% bootstrap_javascript jquery='full' %}
+    <script type="text/javascript">
+        $(function () {
+            $('[data-toggle="tooltip"]').tooltip()
+        })
+    </script>
   </body>
 </html>
       

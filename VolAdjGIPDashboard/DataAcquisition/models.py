@@ -25,6 +25,7 @@ class SecurityHistory(models.Model):
     date = models.DateField()
     ticker = models.CharField(max_length=12)
     close_price = models.FloatField()
+    realized_volatility = models.FloatField(null=True)
     updated = models.DateTimeField(auto_now=True)
 
     @classmethod
@@ -66,6 +67,7 @@ class SecurityHistory(models.Model):
                 date, close_price = row.Index, row.Close
                 obj, created = cls.objects.get_or_create(date=date, ticker=security, defaults={'close_price':close_price, 'updated': datetime.datetime.now()})
                 obj.close_price = close_price
+                obj.realized_volatility = None # we'll calculate this later
                 obj.updated = datetime.datetime.now()
                 obj.save()
 
@@ -134,14 +136,15 @@ class SecurityHistory(models.Model):
         start_date = date_within_quarter - pd.offsets.QuarterEnd() + datetime.timedelta(days=1)
 
         history = cls.objects.filter(ticker__in=tickers, date__gte=start_date, date__lte=date_within_quarter).order_by('date')
-        
+
         try:
             cached = QuarterReturn.objects.filter(
                 quarter_end_date = date_within_quarter, 
-                data_end_date=date_within_quarter, 
+                data_end_date = date_within_quarter, 
                 label = ','.join(tickers).upper(),
                 prices_updated__gte = history.latest('updated').updated
             ).latest('prices_updated')
+
             return cached.quarter_return
 
         except QuarterReturn.DoesNotExist:
@@ -172,9 +175,16 @@ class SecurityHistory(models.Model):
         end_market_value = market_value
 
         quarter_return = end_market_value / start_market_value - 1
+        
+        QuarterReturn.objects.filter(
+            quarter_end_date = date_within_quarter, 
+            data_end_date = date_within_quarter, 
+            label = ','.join(tickers).upper(),
+        ).delete() # if we had an older one, kill it
+        
         cached_return = QuarterReturn(
             quarter_end_date = date_within_quarter, 
-            data_end_date=date_within_quarter, 
+            data_end_date = date_within_quarter, 
             label = ','.join(tickers).upper(),
             prices_updated = history.latest('updated').updated,
             quarter_return = quarter_return 
