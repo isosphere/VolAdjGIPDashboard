@@ -66,6 +66,7 @@ class SecurityHistory(models.Model):
                 date, close_price = row.Index, row.Close
                 obj, created = cls.objects.get_or_create(date=date, ticker=security, defaults={'close_price':close_price, 'updated': datetime.datetime.now()})
                 obj.close_price = close_price
+                obj.updated = datetime.datetime.now()
                 obj.save()
 
     @classmethod
