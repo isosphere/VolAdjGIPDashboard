@@ -8,10 +8,25 @@ import pandas_datareader.data as web
 import pandas as pd
 import numpy as np
 
+class QuarterReturn(models.Model):
+    quarter_end_date = models.DateField()
+    data_end_date = models.DateField()
+    label = models.CharField(max_length=100)
+
+    prices_updated = models.DateTimeField() # data taken from SecurityHistory.updated
+
+    quarter_return = models.FloatField()
+
+    class Meta:
+        unique_together = [['quarter_end_date', 'data_end_date', 'label']]
+    
+
 class SecurityHistory(models.Model):
     date = models.DateField()
     ticker = models.CharField(max_length=12)
     close_price = models.FloatField()
+    realized_volatility = models.FloatField(null=True)
+    updated = models.DateTimeField(auto_now=True)
 
     @classmethod
     def update(cls, tickers=None, clobber=False, start=None, end=None):
@@ -50,8 +65,10 @@ class SecurityHistory(models.Model):
             
             for row in dataframe.itertuples():
                 date, close_price = row.Index, row.Close
-                obj, created = cls.objects.get_or_create(date=date, ticker=security, defaults={'close_price':close_price})
+                obj, created = cls.objects.get_or_create(date=date, ticker=security, defaults={'close_price':close_price, 'updated': datetime.datetime.now()})
                 obj.close_price = close_price
+                obj.realized_volatility = None # we'll calculate this later
+                obj.updated = datetime.datetime.now()
                 obj.save()
 
     @classmethod
@@ -112,19 +129,67 @@ class SecurityHistory(models.Model):
 
     @classmethod
     def quarter_return(cls, tickers, date_within_quarter):
+        tickers.sort() # make the list deterministic for the same input (used for label later)
+
         date_within_quarter += pd.offsets.QuarterEnd()*0 # this is now the quarter end date
         
         start_date = date_within_quarter - pd.offsets.QuarterEnd() + datetime.timedelta(days=1)
 
-        positioning = cls.equal_volatility_position(tickers, max_date=date_within_quarter - pd.offsets.QuarterEnd())
+        history = cls.objects.filter(ticker__in=tickers, date__gte=start_date, date__lte=date_within_quarter).order_by('date')
 
-        start_market_value = 0
-        end_market_value = 0
+        try:
+            cached = QuarterReturn.objects.filter(
+                quarter_end_date = date_within_quarter, 
+                data_end_date = date_within_quarter, 
+                label = ','.join(tickers).upper(),
+                prices_updated__gte = history.latest('updated').updated
+            ).latest('prices_updated')
 
-        # we're assuming the positioning stays constant, which is wrong
-        for leg in positioning:
-            start_market_value += positioning[leg]*cls.objects.filter(ticker=leg, date__gte=start_date).earliest('date').close_price
-            end_market_value += positioning[leg]*cls.objects.filter(ticker=leg, date__lte=date_within_quarter).latest('date').close_price
+            return cached.quarter_return
+
+        except QuarterReturn.DoesNotExist:
+            pass
+
+        distinct_dates = history.values('date').distinct().values_list('date', flat=True)
+        
+        prior_positioning = None
+        prior_cost_basis = dict()
+        start_market_value = 10000
+        market_value = start_market_value
+        
+        for date in distinct_dates:
+            # liquidate
+            if prior_positioning is not None:
+                for leg in prior_positioning:
+                    market_value += prior_positioning[leg]*(history.get(ticker=leg, date=date).close_price - prior_cost_basis[leg])
+                    
+            # accumulate
+            new_positioning = cls.equal_volatility_position(tickers, max_date=date, target_value=market_value)
+            
+            prior_cost_basis = dict()
+            prior_positioning = new_positioning.copy()
+
+            for leg in new_positioning:
+                prior_cost_basis[leg] = history.get(ticker=leg, date=date).close_price
+        
+        end_market_value = market_value
+
+        quarter_return = end_market_value / start_market_value - 1
+        
+        QuarterReturn.objects.filter(
+            quarter_end_date = date_within_quarter, 
+            data_end_date = date_within_quarter, 
+            label = ','.join(tickers).upper(),
+        ).delete() # if we had an older one, kill it
+        
+        cached_return = QuarterReturn(
+            quarter_end_date = date_within_quarter, 
+            data_end_date = date_within_quarter, 
+            label = ','.join(tickers).upper(),
+            prices_updated = history.latest('updated').updated,
+            quarter_return = quarter_return 
+        )
+        cached_return.save()
         
         return end_market_value / start_market_value - 1
 
