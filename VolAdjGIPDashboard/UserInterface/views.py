@@ -39,7 +39,11 @@ def index(request, net_liquidating_value=10000, lookback=252):
             symbol_data.realized_volatility = realized_vol
             symbol_data.save()
 
-        symbol_values[symbol] = (round(symbol_data.close_price, 2), round(100*symbol_data.realized_volatility, 1), round(symbol_data.close_price*symbol_data.realized_volatility, 2))
+        symbol_values[symbol] = (
+            round(symbol_data.close_price, 2), 
+            round(100*symbol_data.realized_volatility, 1), 
+            round(symbol_data.close_price*symbol_data.realized_volatility, 2)
+        )
 
     current_quarter_return = dict()
     prior_quarter_return = dict()
@@ -47,9 +51,21 @@ def index(request, net_liquidating_value=10000, lookback=252):
     
     data_updated = SecurityHistory.objects.latest('updated').updated
 
-    for quad in quad_allocation:
-        current_quarter_return[quad] = round(SecurityHistory.quarter_return(quad_allocation[quad], datetime.date.today())*100,1)
-        prior_quarter_return[quad] = round(SecurityHistory.quarter_return(quad_allocation[quad], datetime.date.today() + pd.offsets.QuarterEnd()*0 - pd.offsets.QuarterEnd())*100, 1)
+    for quad in quad_allocation: 
+        current_quarter_return[quad] = round(
+            SecurityHistory.quarter_return(
+                tickers=quad_allocation[quad], 
+                date_within_quarter=datetime.date.today()
+            )*100,
+            ndigits=1
+        )
+        prior_quarter_return[quad] = round(
+            SecurityHistory.quarter_return(
+                tickers=quad_allocation[quad], 
+                date_within_quarter=datetime.date.today() + pd.offsets.QuarterEnd()*0 - pd.offsets.QuarterEnd()
+            )*100,
+            ndigits=1
+        )
         quad_allocations[quad] = SecurityHistory.equal_volatility_position(quad_allocation[quad], target_value=net_liquidating_value)
 
     return render(request, 'UserInterface/index.htm', {
