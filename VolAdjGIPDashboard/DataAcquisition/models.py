@@ -29,6 +29,28 @@ class SecurityHistory(models.Model):
     updated = models.DateTimeField(auto_now=True)
 
     @classmethod
+    def dataframe(cls, max_date=None, lookback=None, ticker=None):
+        results = cls.objects.all().order_by('-date')
+        if ticker is not None:
+            results = results.filter(ticker=ticker)
+
+        if max_date is not None:
+            results = results.filter(date__lte=max_date)
+
+        if not results:
+            raise ValueError(f'Need data for {security}')
+       
+        results = results.values('date', 'close_price')
+        if lookback is not None:
+            results = results[:lookback+1]        
+
+        dataframe = pd.DataFrame.from_records(results, columns=['date', 'ticker', 'close_price'], index='date', coerce_float=True)
+        dataframe.index = pd.to_datetime(dataframe.index)
+        dataframe.sort_index(inplace=True, ascending=True)
+
+        return dataframe
+
+    @classmethod
     def update(cls, tickers=None, clobber=False, start=None, end=None):
         logger = logging.getLogger('SecurityHistory.update')
         logger.setLevel(settings.LOG_LEVEL)
@@ -83,17 +105,8 @@ class SecurityHistory(models.Model):
         max_price = None
 
         for security in tickers:
-            if max_date is None:
-                results = cls.objects.filter(ticker=security).order_by('-date')[:lookback+1].values('date', 'close_price')
-            else:
-                results = cls.objects.filter(ticker=security, date__lte=max_date).order_by('-date')[:lookback+1].values('date', 'close_price')
-
-            if not results:
-                raise ValueError(f'Need data for {security}')
-
-            dataframe = pd.DataFrame.from_records(results, columns=['date', 'close_price'], index='date', coerce_float=True)
-            dataframe.index = pd.to_datetime(dataframe.index)
-            dataframe.sort_index(inplace=True, ascending=True)
+            dataframe = cls.dataframe(max_date=max_date, lookback=lookback, ticker=security)
+            dataframe.drop('ticker', axis='columns', inplace=True)
            
             # compute realized vol
             dataframe["log_return"] = np.log(dataframe.close_price) - np.log(dataframe.close_price.shift(1))

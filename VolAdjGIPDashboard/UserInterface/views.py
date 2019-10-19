@@ -29,12 +29,7 @@ def index(request, net_liquidating_value=10000, lookback=252):
         symbol_data = SecurityHistory.objects.get(ticker=symbol, date=latest_date)
         
         if symbol_data.realized_volatility is None:
-            results = SecurityHistory.objects.filter(ticker=symbol).order_by('-date')[:lookback+1].values('date', 'close_price')
-            
-            # todo extract and make this a resuable function
-            dataframe = pd.DataFrame.from_records(results, columns=['date', 'close_price'], index='date', coerce_float=True)
-            dataframe.index = pd.to_datetime(dataframe.index)
-            dataframe.sort_index(inplace=True, ascending=True)
+            dataframe = SecurityHistory.dataframe(ticker=symbol, lookback=lookback)
            
             # compute realized vol
             dataframe["log_return"] = np.log(dataframe.close_price) - np.log(dataframe.close_price.shift(1))
