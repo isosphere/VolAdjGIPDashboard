@@ -1,6 +1,10 @@
 import datetime
 import logging
+import json
 import math
+import requests
+
+from dateutil.parser import parse
 
 from django.db import models
 from django.conf import settings
@@ -13,7 +17,7 @@ class QuarterReturn(models.Model):
     data_end_date = models.DateField()
     label = models.CharField(max_length=100)
 
-    prices_updated = models.DateTimeField() # data taken from SecurityHistory.updated
+    prices_updated = models.DateTimeField() # data taken from YahooHistory.updated
 
     quarter_return = models.FloatField()
 
@@ -25,12 +29,74 @@ class SecurityHistory(models.Model):
     date = models.DateField()
     ticker = models.CharField(max_length=12)
     close_price = models.FloatField()
-    realized_volatility = models.FloatField(null=True)
     updated = models.DateTimeField(auto_now=True)
 
     @classmethod
     def update(cls, tickers=None, clobber=False, start=None, end=None):
-        logger = logging.getLogger('SecurityHistory.update')
+        pass
+
+    @classmethod
+    def dataframe(cls, max_date=None, lookback=None, ticker=None):
+        results = cls.objects.all().order_by('-date')
+        if ticker is not None:
+            results = results.filter(ticker=ticker)
+
+        if max_date is not None:
+            results = results.filter(date__lte=max_date)
+
+        if not results:
+            raise ValueError(f'Need data for {security}')
+       
+        results = results.values('date', 'close_price')
+        if lookback is not None:
+            results = results[:lookback+1]        
+
+        dataframe = pd.DataFrame.from_records(results, columns=['date', 'ticker', 'close_price'], index='date', coerce_float=True)
+        dataframe.index = pd.to_datetime(dataframe.index)
+        dataframe.sort_index(inplace=True, ascending=True)
+
+        return dataframe
+
+    class Meta:
+        abstract = True
+
+
+class AlphaVantageHistory(SecurityHistory):
+    @classmethod
+    def update(cls, tickers=None, clobber=False, start=None, end=None):
+        logger = logging.getLogger('AlphaVantageHistory.update')
+        logger.setLevel(settings.LOG_LEVEL)
+
+        if clobber is True or start is not None or end is not None:
+            logger.warning("Clobber, start, and end are not currently supported.")
+
+        if tickers is None:
+            tickers = cls.objects.all().values_list('ticker', flat=True).distinct()
+            logger.info(f"No ticker specified, so using all distinct tickers in the database: {tickers}")
+
+        for ticker in tickers:
+            from_currency, to_currency = ticker.split('.')
+
+            base_url = r"https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE"
+            request_url = f"{base_url}&from_currency={from_currency}&to_currency={to_currency}&apikey={settings.ALPHAVENTAGE_KEY}"
+
+            response = requests.get(request_url)
+            results = response.json()['Realtime Currency Exchange Rate']
+
+            updated, exchange_rate = parse(results['6. Last Refreshed']), results['5. Exchange Rate']
+
+            obj, created = cls.objects.get_or_create(date=updated.date(), ticker=ticker, defaults={'close_price':exchange_rate, 'updated': updated})
+            obj.close_price = exchange_rate
+            obj.realized_volatility = None # we'll calculate this later
+            obj.updated = updated
+            obj.save()
+
+class YahooHistory(SecurityHistory):
+    realized_volatility = models.FloatField(null=True) 
+
+    @classmethod
+    def update(cls, tickers=None, clobber=False, start=None, end=None):
+        logger = logging.getLogger('YahooHistory.update')
         logger.setLevel(settings.LOG_LEVEL)
 
         end = end if end is not None else datetime.datetime.now()
@@ -73,7 +139,7 @@ class SecurityHistory(models.Model):
 
     @classmethod
     def equal_volatility_position(cls, tickers, lookback=252, target_value=10000, max_date=None):
-        logger = logging.getLogger('SecurityHistory.equal_volatility_position')
+        logger = logging.getLogger('YahooHistory.equal_volatility_position')
         logger.setLevel(settings.LOG_LEVEL)
 
         standard_move = dict()
@@ -83,17 +149,8 @@ class SecurityHistory(models.Model):
         max_price = None
 
         for security in tickers:
-            if max_date is None:
-                results = cls.objects.filter(ticker=security).order_by('-date')[:lookback+1].values('date', 'close_price')
-            else:
-                results = cls.objects.filter(ticker=security, date__lte=max_date).order_by('-date')[:lookback+1].values('date', 'close_price')
-
-            if not results:
-                raise ValueError(f'Need data for {security}')
-
-            dataframe = pd.DataFrame.from_records(results, columns=['date', 'close_price'], index='date', coerce_float=True)
-            dataframe.index = pd.to_datetime(dataframe.index)
-            dataframe.sort_index(inplace=True, ascending=True)
+            dataframe = cls.dataframe(max_date=max_date, lookback=lookback, ticker=security)
+            dataframe.drop('ticker', axis='columns', inplace=True)
            
             # compute realized vol
             dataframe["log_return"] = np.log(dataframe.close_price) - np.log(dataframe.close_price.shift(1))
