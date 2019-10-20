@@ -1,6 +1,6 @@
 from django.shortcuts import render
 
-from DataAcquisition.models import SecurityHistory
+from DataAcquisition.models import YahooHistory
 import datetime
 import pandas as pd
 import numpy as np
@@ -15,7 +15,7 @@ def index(request, net_liquidating_value=10000, lookback=252):
 
     symbol_values = dict()
 
-    latest_date = SecurityHistory.objects.latest('date').date
+    latest_date = YahooHistory.objects.latest('date').date
 
     all_symbols = list()
     for quad in quad_allocation:
@@ -26,10 +26,10 @@ def index(request, net_liquidating_value=10000, lookback=252):
     all_symbols.sort()
 
     for symbol in all_symbols:
-        symbol_data = SecurityHistory.objects.get(ticker=symbol, date=latest_date)
+        symbol_data = YahooHistory.objects.get(ticker=symbol, date=latest_date)
         
         if symbol_data.realized_volatility is None:
-            dataframe = SecurityHistory.dataframe(ticker=symbol, lookback=lookback)
+            dataframe = YahooHistory.dataframe(ticker=symbol, lookback=lookback)
            
             # compute realized vol
             dataframe["log_return"] = np.log(dataframe.close_price) - np.log(dataframe.close_price.shift(1))
@@ -49,24 +49,24 @@ def index(request, net_liquidating_value=10000, lookback=252):
     prior_quarter_return = dict()
     quad_allocations = dict()
     
-    data_updated = SecurityHistory.objects.latest('updated').updated
+    data_updated = YahooHistory.objects.latest('updated').updated
 
     for quad in quad_allocation: 
         current_quarter_return[quad] = round(
-            SecurityHistory.quarter_return(
+            YahooHistory.quarter_return(
                 tickers=quad_allocation[quad], 
                 date_within_quarter=datetime.date.today()
             )*100,
             ndigits=1
         )
         prior_quarter_return[quad] = round(
-            SecurityHistory.quarter_return(
+            YahooHistory.quarter_return(
                 tickers=quad_allocation[quad], 
                 date_within_quarter=datetime.date.today() + pd.offsets.QuarterEnd()*0 - pd.offsets.QuarterEnd()
             )*100,
             ndigits=1
         )
-        quad_allocations[quad] = SecurityHistory.equal_volatility_position(quad_allocation[quad], target_value=net_liquidating_value)
+        quad_allocations[quad] = YahooHistory.equal_volatility_position(quad_allocation[quad], target_value=net_liquidating_value)
 
     return render(request, 'UserInterface/index.htm', {
         'current_quarter_return': current_quarter_return,

@@ -13,7 +13,7 @@ class QuarterReturn(models.Model):
     data_end_date = models.DateField()
     label = models.CharField(max_length=100)
 
-    prices_updated = models.DateTimeField() # data taken from SecurityHistory.updated
+    prices_updated = models.DateTimeField() # data taken from YahooHistory.updated
 
     quarter_return = models.FloatField()
 
@@ -21,7 +21,7 @@ class QuarterReturn(models.Model):
         unique_together = [['quarter_end_date', 'data_end_date', 'label']]
     
 
-class SecurityHistory(models.Model):
+class YahooHistory(models.Model):
     date = models.DateField()
     ticker = models.CharField(max_length=12)
     close_price = models.FloatField()
@@ -52,7 +52,7 @@ class SecurityHistory(models.Model):
 
     @classmethod
     def update(cls, tickers=None, clobber=False, start=None, end=None):
-        logger = logging.getLogger('SecurityHistory.update')
+        logger = logging.getLogger('YahooHistory.update')
         logger.setLevel(settings.LOG_LEVEL)
 
         end = end if end is not None else datetime.datetime.now()
@@ -95,7 +95,7 @@ class SecurityHistory(models.Model):
 
     @classmethod
     def equal_volatility_position(cls, tickers, lookback=252, target_value=10000, max_date=None):
-        logger = logging.getLogger('SecurityHistory.equal_volatility_position')
+        logger = logging.getLogger('YahooHistory.equal_volatility_position')
         logger.setLevel(settings.LOG_LEVEL)
 
         standard_move = dict()
