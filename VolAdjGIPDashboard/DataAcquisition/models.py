@@ -170,17 +170,24 @@ class YahooHistory(SecurityHistory):
         leg_ratios = dict()
         for leg in set(tickers).symmetric_difference({controlling_leg}):
             leg_ratios[leg] = standard_move[controlling_leg] / standard_move[leg]
+            logger.debug(f"leg={leg}, ratio={leg_ratios[leg]}")
         
         base_cost = last_price_lookup[controlling_leg]
         for leg in leg_ratios:
             base_cost += last_price_lookup[leg] * leg_ratios[leg]
 
+        logger.debug(f"Base cost: ${base_cost:.2f}")
+
         multiplier = target_value // base_cost
         
         positioning = dict()
         positioning[controlling_leg] = int(multiplier)
+        actual_cost = int(multiplier)*last_price_lookup[controlling_leg]
         for leg in leg_ratios:
             positioning[leg] = math.floor(multiplier*leg_ratios[leg])
+            actual_cost += positioning[leg]*last_price_lookup[leg]
+
+        logger.debug(f"Actual cost: ${actual_cost:.2f}")
         
         return positioning
 
