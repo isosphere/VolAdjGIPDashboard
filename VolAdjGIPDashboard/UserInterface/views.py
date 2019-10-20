@@ -19,8 +19,8 @@ def index(request, default_net_liquidating_value=10000, lookback=252, default_cu
     except ValueError:
         net_liquidating_value = default_net_liquidating_value
     
+    latest_rate = AlphaVantageHistory.objects.filter(ticker='USD.CAD').latest('date').close_price
     if currency == 'CAD':
-        latest_rate = AlphaVantageHistory.objects.filter(ticker='USD.CAD').latest('date').close_price
         net_liquidating_value /= latest_rate
 
     quad_allocation = {
@@ -61,6 +61,11 @@ def index(request, default_net_liquidating_value=10000, lookback=252, default_cu
             round(100*symbol_data.realized_volatility, 1), 
             round(symbol_data.close_price*symbol_data.realized_volatility, 2)
         )
+    symbol_values["USDCAD"] = (
+        latest_rate,
+        "--.--",
+        "--.--"
+    )
 
     current_quarter_return = dict()
     prior_quarter_return = dict()
