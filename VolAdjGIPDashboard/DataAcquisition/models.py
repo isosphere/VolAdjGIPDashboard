@@ -70,6 +70,10 @@ class AlphaVantageHistory(SecurityHistory):
         if clobber is True or start is not None or end is not None:
             logger.warning("Clobber, start, and end are not currently supported.")
 
+        if tickers is None:
+            tickers = cls.objects.all().values_list('ticker', flat=True).distinct()
+            logger.info(f"No ticker specified, so using all distinct tickers in the database: {tickers}")
+
         for ticker in tickers:
             from_currency, to_currency = ticker.split('.')
 

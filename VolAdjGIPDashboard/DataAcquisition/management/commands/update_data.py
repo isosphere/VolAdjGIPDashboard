@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand, CommandError
-from DataAcquisition.models import YahooHistory
+from DataAcquisition.models import YahooHistory, AlphaVantageHistory
 
 import os
 
@@ -8,3 +8,5 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         YahooHistory.update()
+        AlphaVantageHistory.update()
+
