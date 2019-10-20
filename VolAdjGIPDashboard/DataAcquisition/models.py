@@ -1,6 +1,10 @@
 import datetime
 import logging
+import json
 import math
+import requests
+
+from dateutil.parser import parse
 
 from django.db import models
 from django.conf import settings
@@ -21,12 +25,15 @@ class QuarterReturn(models.Model):
         unique_together = [['quarter_end_date', 'data_end_date', 'label']]
     
 
-class YahooHistory(models.Model):
+class SecurityHistory(models.Model):
     date = models.DateField()
     ticker = models.CharField(max_length=12)
     close_price = models.FloatField()
-    realized_volatility = models.FloatField(null=True)
     updated = models.DateTimeField(auto_now=True)
+
+    @classmethod
+    def update(cls, tickers=None, clobber=False, start=None, end=None):
+        pass
 
     @classmethod
     def dataframe(cls, max_date=None, lookback=None, ticker=None):
@@ -49,6 +56,39 @@ class YahooHistory(models.Model):
         dataframe.sort_index(inplace=True, ascending=True)
 
         return dataframe
+
+    class Meta:
+        abstract = True
+
+
+class AlphaVantageHistory(SecurityHistory):
+    @classmethod
+    def update(cls, tickers=None, clobber=False, start=None, end=None):
+        logger = logging.getLogger('AlphaVantageHistory.update')
+        logger.setLevel(settings.LOG_LEVEL)
+
+        if clobber is True or start is not None or end is not None:
+            logger.warning("Clobber, start, and end are not currently supported.")
+
+        for ticker in tickers:
+            from_currency, to_currency = ticker.split('.')
+
+            base_url = r"https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE"
+            request_url = f"{base_url}&from_currency={from_currency}&to_currency={to_currency}&apikey={settings.ALPHAVENTAGE_KEY}"
+
+            response = requests.get(request_url)
+            results = response.json()['Realtime Currency Exchange Rate']
+
+            updated, exchange_rate = parse(results['6. Last Refreshed']), results['5. Exchange Rate']
+
+            obj, created = cls.objects.get_or_create(date=updated.date(), ticker=ticker, defaults={'close_price':exchange_rate, 'updated': updated})
+            obj.close_price = exchange_rate
+            obj.realized_volatility = None # we'll calculate this later
+            obj.updated = updated
+            obj.save()
+
+class YahooHistory(SecurityHistory):
+    realized_volatility = models.FloatField(null=True) 
 
     @classmethod
     def update(cls, tickers=None, clobber=False, start=None, end=None):
