@@ -1,11 +1,28 @@
+import datetime
+
+import numpy as np
+import pandas as pd
 from django.shortcuts import render
 
-from DataAcquisition.models import YahooHistory
-import datetime
-import pandas as pd
-import numpy as np
+from DataAcquisition.models import AlphaVantageHistory, YahooHistory
 
-def index(request, net_liquidating_value=10000, lookback=252):
+
+def index(request, default_net_liquidating_value=10000, lookback=252, default_currency='USD'):
+    net_liquidating_value = request.POST.get('value', default_net_liquidating_value)
+    currency = request.POST.get('currency', default_currency)
+
+    if currency not in ('USD', 'CAD'):
+        currency = default_currency
+    
+    try:
+        net_liquidating_value = int(net_liquidating_value)
+    except ValueError:
+        net_liquidating_value = default_net_liquidating_value
+    
+    if currency == 'CAD':
+        latest_rate = AlphaVantageHistory.objects.filter(ticker='USD.CAD').latest('date').close_price
+        net_liquidating_value /= latest_rate
+
     quad_allocation = {
         1: ['QQQ',],
         2: ['XLF', 'XLI', 'QQQ'],
@@ -67,6 +84,8 @@ def index(request, net_liquidating_value=10000, lookback=252):
             ndigits=1
         )
         quad_allocations[quad] = YahooHistory.equal_volatility_position(quad_allocation[quad], target_value=net_liquidating_value)
+
+    net_liquidating_value = round(net_liquidating_value, 0)
 
     return render(request, 'UserInterface/index.htm', {
         'current_quarter_return': current_quarter_return,

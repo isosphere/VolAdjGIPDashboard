@@ -112,7 +112,17 @@
             </div>
         </div>
     </div>
-    <p class="lead">Current Equal-Volatility Allocations for $<a href="/{{target_value}}">{{target_value}}</a></p>
+    <form action="/" method="POST">
+    <p class="lead">
+        Current Equal-Volatility Allocations for $<input type="number" name="value" value="{{target_value}}"/> 
+        <select name="currency">
+            <option value="USD">USD</option>
+            <option value="CAD">CAD</option>
+        </select>
+        <input type="submit" value=">" />
+        {% csrf_token %}
+    </p>
+    </form> 
     <div class="row">
         {% for quad, value in quad_allocations.items %}
         <div class="col-sm">
