@@ -36,13 +36,18 @@ class SecurityHistory(models.Model):
         pass
 
     @classmethod
-    def dataframe(cls, max_date=None, tickers=None):
+    def dataframe(cls, max_date=None, tickers=None, lookback=None):
         results = cls.objects.all().order_by('-date')
         if tickers is not None:
             results = results.filter(ticker__in=tickers)
 
         if max_date is not None:
             results = results.filter(date__lte=max_date)
+        else:
+            max_date = results.latest('date').date
+        
+        if lookback:
+            results = results.filter(date__gte=max_date - datetime.timedelta(days=lookback*1.6)) # this math is impercise because of weekends
       
         results = results.values('date', 'ticker', 'close_price')
 
@@ -144,7 +149,7 @@ class YahooHistory(SecurityHistory):
         controlling_leg = None
         max_price = None
 
-        dataframe = cls.dataframe(max_date=max_date, tickers=tickers)
+        dataframe = cls.dataframe(max_date=max_date, tickers=tickers, lookback=lookback)
 
         # compute realized vol
         dataframe["log_return"] = dataframe.groupby(level='ticker').close_price.apply(np.log) - dataframe.groupby(level='ticker').close_price.shift(1).apply(np.log)
