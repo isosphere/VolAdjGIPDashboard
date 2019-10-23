@@ -36,24 +36,25 @@ class SecurityHistory(models.Model):
         pass
 
     @classmethod
-    def dataframe(cls, max_date=None, lookback=None, ticker=None):
+    def dataframe(cls, max_date=None, tickers=None, lookback=None):
         results = cls.objects.all().order_by('-date')
-        if ticker is not None:
-            results = results.filter(ticker=ticker)
+        if tickers is not None:
+            results = results.filter(ticker__in=tickers)
 
         if max_date is not None:
             results = results.filter(date__lte=max_date)
+        else:
+            max_date = results.latest('date').date
+        
+        if lookback:
+            results = results.filter(date__gte=max_date - datetime.timedelta(days=lookback*1.6)) # this math is impercise because of weekends
+      
+        results = results.values('date', 'ticker', 'close_price')
 
-        if not results:
-            raise ValueError(f'Need data for {security}')
-       
-        results = results.values('date', 'close_price')
-        if lookback is not None:
-            results = results[:lookback+1]        
-
-        dataframe = pd.DataFrame.from_records(results, columns=['date', 'ticker', 'close_price'], index='date', coerce_float=True)
-        dataframe.index = pd.to_datetime(dataframe.index)
-        dataframe.sort_index(inplace=True, ascending=True)
+        dataframe = pd.DataFrame.from_records(results, columns=['date', 'ticker', 'close_price'], coerce_float=True)
+        dataframe.date = pd.to_datetime(dataframe.date)
+        dataframe.set_index(['ticker', 'date'], inplace=True)
+        dataframe.sort_index(inplace=True, ascending=True, level=['ticker', 'date'])        
 
         return dataframe
 
@@ -148,15 +149,15 @@ class YahooHistory(SecurityHistory):
         controlling_leg = None
         max_price = None
 
-        for security in tickers:
-            dataframe = cls.dataframe(max_date=max_date, lookback=lookback, ticker=security)
-            dataframe.drop('ticker', axis='columns', inplace=True)
-           
-            # compute realized vol
-            dataframe["log_return"] = np.log(dataframe.close_price) - np.log(dataframe.close_price.shift(1))
-            dataframe["realized_vol"] = dataframe.log_return.rolling(lookback).std(ddof=0)
+        dataframe = cls.dataframe(max_date=max_date, tickers=tickers, lookback=lookback)
 
-            latest_close, realized_vol = dataframe.iloc[-1].close_price, dataframe.iloc[-1].realized_vol
+        # compute realized vol
+        dataframe["log_return"] = dataframe.groupby(level='ticker').close_price.apply(np.log) - dataframe.groupby(level='ticker').close_price.shift(1).apply(np.log)
+        dataframe["realized_vol"] = dataframe.groupby(level='ticker').log_return.rolling(lookback).std(ddof=0).droplevel(0)
+
+        for security in tickers:
+            subset = dataframe[dataframe.index.get_level_values('ticker') == security]
+            latest_close, realized_vol = subset.iloc[-1].close_price, subset.iloc[-1].realized_vol
             
             standard_move[security] = realized_vol*latest_close
             last_price_lookup[security] = latest_close
@@ -165,22 +166,29 @@ class YahooHistory(SecurityHistory):
                 controlling_leg = security
                 max_price = latest_close
 
-        logger.info(f"Controlling leg (most expensive) is {controlling_leg}.")
+        logger.debug(f"Controlling leg (most expensive) is {controlling_leg}, with a standard move of ${standard_move[controlling_leg]:2f}.")
 
         leg_ratios = dict()
         for leg in set(tickers).symmetric_difference({controlling_leg}):
             leg_ratios[leg] = standard_move[controlling_leg] / standard_move[leg]
+            logger.debug(f"leg={leg}, standard move=${standard_move[leg]:2f} ratio={leg_ratios[leg]}")
         
         base_cost = last_price_lookup[controlling_leg]
         for leg in leg_ratios:
             base_cost += last_price_lookup[leg] * leg_ratios[leg]
 
+        logger.debug(f"Base cost: ${base_cost:.2f}")
+
         multiplier = target_value // base_cost
         
         positioning = dict()
         positioning[controlling_leg] = int(multiplier)
+        actual_cost = int(multiplier)*last_price_lookup[controlling_leg]
         for leg in leg_ratios:
             positioning[leg] = math.floor(multiplier*leg_ratios[leg])
+            actual_cost += positioning[leg]*last_price_lookup[leg]
+
+        logger.debug(f"Actual cost: ${actual_cost:.2f}")
         
         return positioning
 
