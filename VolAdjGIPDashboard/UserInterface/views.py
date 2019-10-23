@@ -44,13 +44,12 @@ def index(request, default_net_liquidating_value=10000, lookback=252, default_cu
 
     for symbol in all_symbols:
         symbol_data = YahooHistory.objects.get(ticker=symbol, date=latest_date)
-        
+
         if symbol_data.realized_volatility is None:
-            dataframe = YahooHistory.dataframe(ticker=symbol, lookback=lookback)
-           
-            # compute realized vol
-            dataframe["log_return"] = np.log(dataframe.close_price) - np.log(dataframe.close_price.shift(1))
-            dataframe["realized_vol"] = dataframe.log_return.rolling(lookback).std(ddof=0)
+            dataframe = YahooHistory.dataframe(tickers=[symbol], lookback=lookback)
+            dataframe["log_return"] = dataframe.groupby(level='ticker').close_price.apply(np.log) - dataframe.groupby(level='ticker').close_price.shift(1).apply(np.log)
+            dataframe["realized_vol"] = dataframe.groupby(level='ticker').log_return.rolling(lookback).std(ddof=0).droplevel(0)
+            dataframe = dataframe.droplevel("ticker")
 
             latest_close, realized_vol = dataframe.iloc[-1].close_price, dataframe.iloc[-1].realized_vol          
             symbol_data.realized_volatility = realized_vol
