@@ -139,7 +139,7 @@ class YahooHistory(SecurityHistory):
                 obj.save()
 
     @classmethod
-    def equal_volatility_position(cls, tickers, lookback=252, target_value=10000, max_date=None):
+    def equal_volatility_position(cls, tickers, lookback=28, target_value=10000, max_date=None):
         logger = logging.getLogger('YahooHistory.equal_volatility_position')
         logger.setLevel(settings.LOG_LEVEL)
 
