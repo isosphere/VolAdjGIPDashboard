@@ -7,7 +7,7 @@ from django.shortcuts import render
 from DataAcquisition.models import AlphaVantageHistory, YahooHistory
 
 
-def index(request, default_net_liquidating_value=10000, lookback=252, default_currency='USD'):
+def index(request, default_net_liquidating_value=10000, lookback=28, default_currency='USD'):
     net_liquidating_value = request.POST.get('value', default_net_liquidating_value)
     currency = request.POST.get('currency', default_currency)
 
