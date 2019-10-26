@@ -4,10 +4,17 @@ import numpy as np
 import pandas as pd
 from django.shortcuts import render
 
-from DataAcquisition.models import AlphaVantageHistory, YahooHistory
+from DataAcquisition.models import AlphaVantageHistory, YahooHistory, QuadForecasts
 
 
 def index(request, default_net_liquidating_value=10000, lookback=28, default_currency='USD'):
+    current_date = datetime.date.today()
+
+    quarter_int = (current_date.month - 1) // 3 + 1 
+    quarter_date = datetime.date(current_date.year, 1, 1) + pd.offsets.QuarterEnd()*quarter_int
+
+    quad_guesses = QuadForecasts.objects.filter(quarter_end_date=quarter_date).order_by('-date')[:2].values_list('date', 'gdp_roc', 'cpi_roc')
+
     net_liquidating_value = request.POST.get('value', default_net_liquidating_value)
     currency = request.POST.get('currency', default_currency)
 
@@ -99,5 +106,6 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
         'target_value': net_liquidating_value,
         'data_updated': data_updated,
         'symbol_values': symbol_values,
-        'lookback': lookback
+        'lookback': lookback,
+        'roc_data': quad_guesses
     })
