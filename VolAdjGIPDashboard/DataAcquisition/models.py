@@ -1,5 +1,6 @@
 import datetime
 import logging
+import io
 import json
 import math
 import requests
@@ -92,6 +93,7 @@ class AlphaVantageHistory(SecurityHistory):
             obj.updated = updated
             obj.save()
 
+
 class YahooHistory(SecurityHistory):
     realized_volatility = models.FloatField(null=True) 
 
@@ -137,6 +139,7 @@ class YahooHistory(SecurityHistory):
                 obj.realized_volatility = None # we'll calculate this later
                 obj.updated = datetime.datetime.now()
                 obj.save()
+
 
     @classmethod
     def equal_volatility_position(cls, tickers, lookback=28, target_value=10000, max_date=None):
@@ -191,6 +194,7 @@ class YahooHistory(SecurityHistory):
         logger.debug(f"Actual cost: ${actual_cost:.2f}")
         
         return positioning
+
 
     @classmethod
     def quarter_return(cls, tickers, date_within_quarter):
@@ -260,3 +264,219 @@ class YahooHistory(SecurityHistory):
 
     class Meta:
         unique_together = [['ticker', 'date']]
+
+
+class QuadForecasts(models.Model):
+    quarter_end_date = models.DateField()
+    date = models.DateField()
+
+    cpi_roc = models.FloatField()
+    gdp_roc = models.FloatField()
+    quad = models.IntegerField()
+
+    updated = models.DateTimeField(auto_now=True)
+
+    @classmethod
+    def __determine_quad_multi_index(cls, row):
+        if row.cpi_roc[0] <= 0 and row.gdp_roc[0] >= 0:
+            return 1
+        # quad 2
+        elif row.cpi_roc[0] > 0 and row.gdp_roc[0] >= 0:
+            return 2
+        # quad 3 
+        elif row.cpi_roc[0] > 0 and row.gdp_roc[0] < 0:
+            return 3
+        # quad 4
+        elif row.cpi_roc[0] <= 0 and row.gdp_roc[0] < 0:
+            return 4
+
+    @classmethod
+    def fetch_usa_cpi_nowcasts(cls):
+        url = r'https://www.forecasts.org/inf/cpi-data.csv'
+    
+        response = requests.get(url, allow_redirects=True)
+        memory_handle = io.BytesIO(response.content)
+        
+        dataframe = pd.read_csv(memory_handle, index_col="Date", header=0, names=["Date", "CPI", "Note"], skipfooter=2, engine="python")
+        dataframe.index= pd.to_datetime(dataframe.index)
+        cpi_forecasts = dataframe.loc[dataframe.Note.str.contains("Forecast")]["CPI"].resample('Q').mean()
+        
+        return cpi_forecasts
+
+
+    @classmethod
+    def fetch_usa_gdp_nowcasts(cls):        
+        start_date = datetime.date(2001,1,1)
+        gdp_nowcasts = web.DataReader('GDPNOW', 'fred', start = start_date)['GDPNOW'] # Real GDP, seasonally adjusted. Quarterly. 
+
+        # align the FRED quarterly dates to Pandas quarterly dates
+        gdp_nowcasts.index = gdp_nowcasts.index.shift(1, freq='Q')
+        gdp_nowcasts = gdp_nowcasts.resample('Q').asfreq()
+
+        return gdp_nowcasts
+
+    @classmethod
+    def fetch_usa_gi_data(cls):
+        start_date = datetime.date(2001,1,1)
+        # Real GDP, seasonally adjusted. Quarterly.
+        gdp_data = web.DataReader('GDPC1', 'fred', start = start_date)['GDPC1']
+
+        # align the FRED quarterly dates to Pandas quarterly dates
+        # each index value will be the last day of a quarter. i.e. 2019-06-30 is Q2 2019.
+        gdp_data.index = gdp_data.index.shift(1, freq='Q')
+
+        gdp_nowcasts = cls.fetch_usa_gdp_nowcasts()
+        future_nowcasts = 1 + gdp_nowcasts[gdp_nowcasts.index > gdp_data.index.max()] / 100
+
+        # shift and multiply
+        shifted_gdp = gdp_data.copy()
+        shifted_gdp.index = gdp_data.index.shift(4, freq='Q')
+
+        future_nowcasts = future_nowcasts.multiply(shifted_gdp).dropna()
+
+        gdp_data = pd.concat([gdp_data, future_nowcasts])        
+
+        gdp_data = gdp_data.resample('Q').asfreq()
+
+        # CPI, all items, urban, not seasonally adjusted. Monthly.
+        cpi_all_urban_unadjusted_data = web.DataReader('CPIAUCNS', 'fred', start = start_date)['CPIAUCNS']    
+        cpi_data = cpi_all_urban_unadjusted_data.resample('Q').mean()
+
+        cpi_nowcasts = cls.fetch_usa_cpi_nowcasts()
+        cpi_data = pd.concat([cpi_data, cpi_nowcasts])
+
+        return gdp_data, cpi_data            
+
+    @classmethod
+    def get_new_york_fed_gdp_nowcasts(cls):
+        url = r'https://www.newyorkfed.org/medialibrary/media/research/policy/nowcast/new-york-fed-staff-nowcast_data_2002-present.xlsx?la=en'
+
+        response = requests.get(url, allow_redirects=True)
+        memory_handle = io.BytesIO(response.content)
+
+        data = pd.read_excel(memory_handle, sheet_name='Forecasts By Horizon', header=13).iloc[:, :5]
+        data.columns = ['date', 'quarter', 'backcast', 'nowcast', 'forecast']
+        data['quarter'] = pd.to_datetime(data.quarter) + pd.offsets.QuarterEnd()
+
+        return data
+
+    @classmethod
+    def get_gdp_set(cls, actual_gdp):
+        fed_nowcasts = cls.get_new_york_fed_gdp_nowcasts()
+
+        forecasts = fed_nowcasts.copy()
+        forecasts.quarter += pd.offsets.QuarterEnd()
+        forecasts.drop(['backcast', 'nowcast'], inplace=True, axis='columns')
+        forecasts.set_index(['quarter', 'date'], inplace=True)
+
+        nowcasts = fed_nowcasts.copy()
+        nowcasts.drop(['backcast', 'forecast'], inplace=True, axis='columns')
+        nowcasts.set_index(['quarter', 'date'], inplace=True)
+
+        data = (pd.concat([forecasts, nowcasts], join='outer', sort=True, axis=1))
+
+        data = data.assign(growth = np.where(data.nowcast.isnull(), data.forecast, data.nowcast))
+        data.growth = (data.growth/100 + 1)**(1/4)
+        data.drop(['forecast', 'nowcast'], inplace=True, axis='columns')
+        data.dropna(inplace=True)
+
+        gdp_df = pd.DataFrame({
+            'date': actual_gdp.index + pd.offsets.QuarterEnd(), # pre-shift, for easy multiplying later
+            'gdp': actual_gdp.values
+        }).set_index('date')
+
+        first_order_estimates = data.join(gdp_df, on='quarter')
+        first_order_estimates['number'] = (first_order_estimates.growth * first_order_estimates.gdp)
+        first_order_estimates.drop(['gdp'], inplace=True, axis='columns')
+
+        forecasted_gdp = first_order_estimates.reset_index()
+        forecasted_gdp.quarter += pd.offsets.QuarterEnd() # shift for easy multiplying later
+        forecasted_gdp.drop(['growth'], axis='columns', inplace=True)
+        forecasted_gdp = forecasted_gdp.rename({'number': 'gdp'}, axis='columns').dropna().set_index(['quarter', 'date'])
+
+        second_order_estimates = pd.concat([forecasted_gdp, first_order_estimates], join='outer', sort=True, axis=1)
+        second_order_estimates = second_order_estimates.assign(
+            best_estimate = np.where(
+                second_order_estimates.number.isnull(), # original gdp forecast blank
+                second_order_estimates.gdp * first_order_estimates.growth,  # use forecast applied to a forecast (second order)
+                second_order_estimates.number # otherwise use original gdp forecast (first order)
+            )
+        )
+
+        second_order_estimates.drop(['gdp', 'number'], inplace=True, axis='columns') # these columns are confusing anyway due to shifting
+        second_order_estimates.dropna(how='all', inplace=True) # if all columns are null, drop
+        
+        return second_order_estimates
+
+    @classmethod
+    def determine_quads(cls, actual_gdp, actual_cpi):
+        dataframe = cls.get_gdp_set(actual_gdp)
+        dataframe.drop('growth', inplace=True, axis='columns')
+
+        # Collect required GDP numbers
+        shifted_gdp = pd.DataFrame({'quarter': actual_gdp.index + 4*pd.offsets.QuarterEnd(), 'past_gdp': actual_gdp}) # final numbers
+        shifted_gdp.set_index('quarter', inplace=True)
+        dataframe = dataframe.join(shifted_gdp, on='quarter')
+
+        # Collect required CPI numbers
+        cpi_df = pd.DataFrame({'quarter':actual_cpi.index, 'cpi':actual_cpi.values})
+        cpi_df.set_index('quarter', inplace=True)
+        dataframe = dataframe.join(cpi_df, on='quarter')
+
+        shifted_cpi = pd.DataFrame({'quarter': actual_cpi.index + 4*pd.offsets.QuarterEnd(), 'past_cpi': actual_cpi}) # final numbers
+        shifted_cpi.set_index('quarter', inplace=True)
+        dataframe = dataframe.join(shifted_cpi, on='quarter')
+
+        # Collected settled YOY numbers
+        merged_data = pd.DataFrame({
+            'past_cpi_yoy': actual_cpi,
+            'past_gdp_yoy': actual_gdp,
+        }).pct_change(4)
+        merged_data.index.names=['quarter']
+        merged_data.index += pd.offsets.QuarterEnd()
+
+        dataframe = dataframe.join(merged_data, on='quarter')
+
+        # do maths
+        dataframe['gdp_yoy'] = dataframe.best_estimate / dataframe.past_gdp - 1
+        dataframe['cpi_yoy'] = dataframe.cpi / dataframe.past_cpi - 1
+
+        dataframe['gdp_roc'] = (dataframe.gdp_yoy - dataframe.past_gdp_yoy) * 1e4 # bps
+        dataframe['cpi_roc'] = (dataframe.cpi_yoy - dataframe.past_cpi_yoy) * 1e4 # bps
+
+        dataframe['quad'] = dataframe.groupby(['quarter', 'date']).apply(cls.__determine_quad_multi_index).rename('quad')
+
+        # drop confusing intermediates
+        dataframe.drop([
+            'cpi', 'best_estimate', 'past_gdp', 'past_cpi', 'gdp_yoy', 'cpi_yoy',
+            'past_cpi_yoy', 'past_gdp_yoy',
+        ], inplace=True, axis='columns')    
+
+        return dataframe
+
+    @classmethod
+    def update(cls):
+        gdp, cpi = cls.fetch_usa_gi_data()
+        usa_quads = cls.determine_quads(gdp, cpi)
+
+        for row in usa_quads.itertuples():
+            quarter, date = row.Index
+
+            try:
+                quad = int(row.quad)
+            except ValueError:
+                continue
+
+            cls.objects.get_or_create(
+                quarter_end_date = quarter.date(), 
+                date = date.date(), 
+                defaults = {
+                    'updated': datetime.datetime.now(),
+                    'cpi_roc': row.cpi_roc,
+                    'gdp_roc': row.gdp_roc,
+                    'quad': int(row.quad)                   
+                }
+            )
+
+    class Meta:
+        unique_together = [['quarter_end_date', 'date']]
