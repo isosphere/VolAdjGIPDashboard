@@ -86,6 +86,16 @@
                     </div>
                 </div>
             </div>
+            <div class="col-sm">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Quad Outlook (this quarter)</h5>
+                        <p class="card-text">
+                            <canvas id="quad_updates" width="400" height="250"></canvas>
+                        </p>
+                    </div>
+                </div>
+            </div>            
             <div class="col-xl">
                 <div class="card">
                     <div class="card-body">
@@ -112,7 +122,7 @@
             </div>
         </div>
     </div>
-    <form action="/" method="POST">
+    <form action="/" method="POST" style="margin-top:2em;">
     <p class="lead">
         Current Equal-Volatility Allocations for $<input type="number" name="value" value="{{target_value}}"/> 
         <select name="currency">
@@ -155,6 +165,68 @@
             $('[data-toggle="tooltip"]').tooltip()
         })
     </script>
-  </body>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.0/dist/Chart.min.js"></script>
+    <script>
+        var ctx = document.getElementById('quad_updates').getContext('2d');
+        var scatterChart = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [
+                {% for date, gdp_roc, cpi_roc in roc_data %}
+                    {
+                        label: "{{date}}",
+                        
+                        data: [
+                            {
+                                x: {{gdp_roc}},
+                                y: {{cpi_roc}}
+                            },
+                        ],
+                        {% if forloop.first %}
+                        pointBackgroundColor: ['#00ff00'],
+                        {% else %}
+                        pointBackgroundColor: ['#0000ff'],
+                        {% endif %}
+                        {% if forloop.first %}
+                        backgroundColor: '#00ff00'
+                        {% else %}
+                        backgroundColor: '#0000ff'
+                        {% endif %}
+                    },
+                {% endfor %}
+                ]
+            },
+            options: {
+                scales: {
+                    xAxes: [{
+                        type: 'linear',
+                        position: 'bottom',
+                        scaleLabel: {
+                            labelString: "Inflation Velocity",
+                            display: true
+                        },
+                        ticks: {
+                            suggestedMax: 100.0,
+                            suggestedMin: -100.0
+                        }
+                    }],
+                    yAxes: [{
+                        scaleLabel: {
+                            labelString: "Growth Velocity",
+                            display: true
+                        },
+                        ticks: {
+                            suggestedMax: 100.0,
+                            suggestedMin: -100.0
+                        }
+                    }]
+                },
+                legend: {
+                    display: true
+                }
+            }
+        });
+        </script>    
+    </body>
 </html>
       
