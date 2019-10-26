@@ -178,8 +178,8 @@
                         
                         data: [
                             {
-                                x: {{cpi_roc}},
-                                y: {{gdp_roc}}
+                                x: {{cpi_roc|floatformat}},
+                                y: {{gdp_roc|floatformat}}
                             },
                         ],
                         {% if forloop.first %}
@@ -207,17 +207,20 @@
                         },
                         ticks: {
                             suggestedMax: 50.0,
-                            suggestedMin: -50.0
+                            suggestedMin: -50.0,
+                            stepSize: 20.0,
                         }
                     }],
                     yAxes: [{
+                        type: 'linear',
                         scaleLabel: {
                             labelString: "Growth Velocity",
                             display: true
                         },
                         ticks: {
                             suggestedMax: 50.0,
-                            suggestedMin: -50.0
+                            suggestedMin: -50.0,
+                            stepSize: 20.0,
                         }
                     }]
                 },
