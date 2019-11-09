@@ -349,29 +349,42 @@ class QuadForecasts(models.Model):
 
         gdp_df = pd.DataFrame({
             'date': actual_gdp.index + pd.offsets.QuarterEnd(), # pre-shift, for easy multiplying later
-            'gdp': actual_gdp.values
+            'prior_actual_gdp': actual_gdp.values
         }).set_index('date')
 
         first_order_estimates = data.join(gdp_df, on='quarter')
-        first_order_estimates['number'] = (first_order_estimates.growth * first_order_estimates.gdp)
-        first_order_estimates.drop(['gdp'], inplace=True, axis='columns')
+        first_order_estimates['number'] = (first_order_estimates.growth * first_order_estimates.prior_actual_gdp)
+        first_order_estimates.drop(['prior_actual_gdp'], inplace=True, axis='columns')
 
         forecasted_gdp = first_order_estimates.reset_index()
         forecasted_gdp.quarter += pd.offsets.QuarterEnd() # shift for easy multiplying later
         forecasted_gdp.drop(['growth'], axis='columns', inplace=True)
         forecasted_gdp = forecasted_gdp.rename({'number': 'gdp'}, axis='columns').dropna().set_index(['quarter', 'date'])
 
+        actual_current_gdp = pd.DataFrame({
+            'date': actual_gdp.index,
+            'actual_gdp': actual_gdp.values
+        }).set_index('date')
+
         second_order_estimates = pd.concat([forecasted_gdp, first_order_estimates], join='outer', sort=True, axis=1)
+        second_order_estimates = second_order_estimates.join(actual_current_gdp, on='quarter')
+
         second_order_estimates = second_order_estimates.assign(
             best_estimate = np.where(
-                second_order_estimates.number.isnull(), # original gdp forecast blank
-                second_order_estimates.gdp * first_order_estimates.growth,  # use forecast applied to a forecast (second order)
-                second_order_estimates.number # otherwise use original gdp forecast (first order)
+                second_order_estimates.actual_gdp.isnull(),
+                np.where(
+                    second_order_estimates.number.isnull(), # original gdp forecast blank
+                    second_order_estimates.gdp * first_order_estimates.growth,  # use forecast applied to a forecast (second order)
+                    second_order_estimates.number # otherwise use original gdp forecast (first order)
+                ),
+                second_order_estimates.actual_gdp
             )
         )
 
-        second_order_estimates.drop(['gdp', 'number'], inplace=True, axis='columns') # these columns are confusing anyway due to shifting
+        second_order_estimates.drop(['gdp', 'number', 'actual_gdp'], inplace=True, axis='columns') # these columns are confusing anyway due to shifting
         second_order_estimates.dropna(how='all', inplace=True) # if all columns are null, drop
+
+        second_order_estimates = second_order_estimates.groupby('quarter').tail(1)
         
         return second_order_estimates
 
@@ -399,8 +412,8 @@ class QuadForecasts(models.Model):
             'past_cpi_yoy': actual_cpi,
             'past_gdp_yoy': actual_gdp,
         }).pct_change(4)
-        merged_data.index.names=['quarter']
-        merged_data.index += pd.offsets.QuarterEnd()
+        merged_data.index.names = ['quarter']
+        merged_data.index += pd.offsets.QuarterEnd()*4
 
         dataframe = dataframe.join(merged_data, on='quarter')
 
