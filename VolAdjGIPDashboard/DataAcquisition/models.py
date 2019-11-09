@@ -303,18 +303,6 @@ class QuadForecasts(models.Model):
         
         return cpi_forecasts
 
-
-    @classmethod
-    def fetch_usa_gdp_nowcasts(cls):        
-        start_date = datetime.date(2001,1,1)
-        gdp_nowcasts = web.DataReader('GDPNOW', 'fred', start = start_date)['GDPNOW'] # Real GDP, seasonally adjusted. Quarterly. 
-
-        # align the FRED quarterly dates to Pandas quarterly dates
-        gdp_nowcasts.index = gdp_nowcasts.index.shift(1, freq='Q')
-        gdp_nowcasts = gdp_nowcasts.resample('Q').asfreq()
-
-        return gdp_nowcasts
-
     @classmethod
     def fetch_usa_gi_data(cls):
         start_date = datetime.date(2001,1,1)
@@ -323,19 +311,7 @@ class QuadForecasts(models.Model):
 
         # align the FRED quarterly dates to Pandas quarterly dates
         # each index value will be the last day of a quarter. i.e. 2019-06-30 is Q2 2019.
-        gdp_data.index = gdp_data.index.shift(1, freq='Q')
-
-        gdp_nowcasts = cls.fetch_usa_gdp_nowcasts()
-        future_nowcasts = 1 + gdp_nowcasts[gdp_nowcasts.index > gdp_data.index.max()] / 100
-
-        # shift and multiply
-        shifted_gdp = gdp_data.copy()
-        shifted_gdp.index = gdp_data.index.shift(4, freq='Q')
-
-        future_nowcasts = future_nowcasts.multiply(shifted_gdp).dropna()
-
-        gdp_data = pd.concat([gdp_data, future_nowcasts])        
-
+        gdp_data.index = gdp_data.index.shift(1, freq='Q')   
         gdp_data = gdp_data.resample('Q').asfreq()
 
         # CPI, all items, urban, not seasonally adjusted. Monthly.
