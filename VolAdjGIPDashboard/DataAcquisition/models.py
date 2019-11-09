@@ -330,30 +330,21 @@ class QuadForecasts(models.Model):
         response = requests.get(url, allow_redirects=True)
         memory_handle = io.BytesIO(response.content)
 
-        data = pd.read_excel(memory_handle, sheet_name='Forecasts By Horizon', header=13).iloc[:, :5]
-        data.columns = ['date', 'quarter', 'backcast', 'nowcast', 'forecast']
-        data['quarter'] = pd.to_datetime(data.quarter) + pd.offsets.QuarterEnd()
-
+        data = pd.read_excel(memory_handle, sheet_name='Forecasts By Quarter', header=13)
+        data = data.melt(id_vars=['Forecast Date'], var_name="quarter", value_name="forecast")
+        data.columns = ['date', 'quarter', 'forecast']
+        data['quarter'] = pd.to_datetime(data.quarter) + pd.offsets.QuarterEnd()*0
+        
         return data
 
     @classmethod
     def get_gdp_set(cls, actual_gdp):
-        fed_nowcasts = cls.get_new_york_fed_gdp_nowcasts()
+        data = cls.get_new_york_fed_gdp_nowcasts()
 
-        forecasts = fed_nowcasts.copy()
-        forecasts.quarter += pd.offsets.QuarterEnd()
-        forecasts.drop(['backcast', 'nowcast'], inplace=True, axis='columns')
-        forecasts.set_index(['quarter', 'date'], inplace=True)
+        data.set_index(['quarter', 'date'], inplace=True)
 
-        nowcasts = fed_nowcasts.copy()
-        nowcasts.drop(['backcast', 'forecast'], inplace=True, axis='columns')
-        nowcasts.set_index(['quarter', 'date'], inplace=True)
-
-        data = (pd.concat([forecasts, nowcasts], join='outer', sort=True, axis=1))
-
-        data = data.assign(growth = np.where(data.nowcast.isnull(), data.forecast, data.nowcast))
-        data.growth = (data.growth/100 + 1)**(1/4)
-        data.drop(['forecast', 'nowcast'], inplace=True, axis='columns')
+        data['growth'] = (data.forecast/100 + 1)**(1/4)
+        data.drop(['forecast'], inplace=True, axis='columns')
         data.dropna(inplace=True)
 
         gdp_df = pd.DataFrame({
