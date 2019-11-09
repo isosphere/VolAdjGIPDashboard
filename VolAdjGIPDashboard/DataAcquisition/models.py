@@ -412,8 +412,8 @@ class QuadForecasts(models.Model):
             'past_cpi_yoy': actual_cpi,
             'past_gdp_yoy': actual_gdp,
         }).pct_change(4)
-        merged_data.index.names=['quarter']
-        merged_data.index += pd.offsets.QuarterEnd()
+        merged_data.index.names = ['quarter']
+        merged_data.index += pd.offsets.QuarterEnd()*4
 
         dataframe = dataframe.join(merged_data, on='quarter')
 
