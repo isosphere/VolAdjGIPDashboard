@@ -372,6 +372,8 @@ class QuadForecasts(models.Model):
 
         second_order_estimates.drop(['gdp', 'number'], inplace=True, axis='columns') # these columns are confusing anyway due to shifting
         second_order_estimates.dropna(how='all', inplace=True) # if all columns are null, drop
+
+        second_order_estimates = second_order_estimates.groupby('quarter').tail(1)
         
         return second_order_estimates
 
