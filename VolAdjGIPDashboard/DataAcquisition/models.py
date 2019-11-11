@@ -413,7 +413,7 @@ class QuadForecasts(models.Model):
             'past_gdp_yoy': actual_gdp,
         }).pct_change(4)
         merged_data.index.names = ['quarter']
-        merged_data.index += pd.offsets.QuarterEnd()*4
+        merged_data.index += pd.offsets.QuarterEnd() # push forward one quarter
 
         dataframe = dataframe.join(merged_data, on='quarter')
 
@@ -421,6 +421,7 @@ class QuadForecasts(models.Model):
         dataframe['gdp_yoy'] = dataframe.best_estimate / dataframe.past_gdp - 1
         dataframe['cpi_yoy'] = dataframe.cpi / dataframe.past_cpi - 1
 
+        # quarterly rate of change of the yoy rates
         dataframe['gdp_roc'] = (dataframe.gdp_yoy - dataframe.past_gdp_yoy) * 1e4 # bps
         dataframe['cpi_roc'] = (dataframe.cpi_yoy - dataframe.past_cpi_yoy) * 1e4 # bps
 
