@@ -319,7 +319,7 @@ class QuadForecasts(models.Model):
         cpi_data = cpi_all_urban_unadjusted_data.resample('Q').mean()
 
         cpi_nowcasts = cls.fetch_usa_cpi_nowcasts()
-        cpi_data = pd.concat([cpi_data, cpi_nowcasts])
+        cpi_data = pd.concat([cpi_data[~(cpi_data.index.isin(cpi_nowcasts.index))], cpi_nowcasts])
 
         return gdp_data, cpi_data            
 
