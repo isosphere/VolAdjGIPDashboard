@@ -64,7 +64,7 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
 
         symbol_values[symbol] = (
             round(symbol_data.close_price, 2), 
-            round(100*symbol_data.realized_volatility, 1), 
+            round(100*symbol_data.realized_volatility, 2), 
             round(symbol_data.close_price*symbol_data.realized_volatility, 2)
         )
     symbol_values["USDCAD"] = (
@@ -78,19 +78,21 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
     quad_allocations = dict()
     
     data_updated = YahooHistory.objects.latest('updated').updated
+    current_quad = QuadForecasts.objects.latest('quarter_end_date', 'date').quad
+    quad_start_date = QuadForecasts.objects.exclude(quad=current_quad).latest('quarter_end_date', 'date').date
 
     for quad in quad_allocation: 
         current_quarter_return[quad] = round(
-            YahooHistory.quarter_return(
+            YahooHistory.quad_return(
                 tickers=quad_allocation[quad], 
                 date_within_quarter=datetime.date.today()
             )*100,
             ndigits=1
         )
         prior_quarter_return[quad] = round(
-            YahooHistory.quarter_return(
+            YahooHistory.quad_return(
                 tickers=quad_allocation[quad], 
-                date_within_quarter=datetime.date.today() + pd.offsets.QuarterEnd()*0 - pd.offsets.QuarterEnd()
+                date_within_quarter=quad_start_date - datetime.timedelta(days=1)
             )*100,
             ndigits=1
         )
