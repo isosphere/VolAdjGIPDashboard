@@ -78,21 +78,19 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
     quad_allocations = dict()
     
     data_updated = YahooHistory.objects.latest('updated').updated
-    current_quad = QuadForecasts.objects.latest('quarter_end_date', 'date').quad
-    quad_start_date = QuadForecasts.objects.exclude(quad=current_quad).latest('quarter_end_date', 'date').date
 
     for quad in quad_allocation: 
         current_quarter_return[quad] = round(
-            YahooHistory.quad_return(
+            YahooHistory.quarter_return(
                 tickers=quad_allocation[quad], 
                 date_within_quarter=datetime.date.today()
             )*100,
             ndigits=1
         )
         prior_quarter_return[quad] = round(
-            YahooHistory.quad_return(
+            YahooHistory.quarter_return(
                 tickers=quad_allocation[quad], 
-                date_within_quarter=quad_start_date - datetime.timedelta(days=1)
+                date_within_quarter=datetime.date.today() + pd.offsets.QuarterEnd()*0 - pd.offsets.QuarterEnd()
             )*100,
             ndigits=1
         )
