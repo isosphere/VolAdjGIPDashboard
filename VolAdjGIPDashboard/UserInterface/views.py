@@ -79,21 +79,29 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
     
     data_updated = YahooHistory.objects.latest('updated').updated
 
-    for quad in quad_allocation: 
-        current_quarter_return[quad] = round(
-            YahooHistory.quarter_return(
-                tickers=quad_allocation[quad], 
-                date_within_quarter=datetime.date.today()
-            )*100,
-            ndigits=1
-        )
-        prior_quarter_return[quad] = round(
-            YahooHistory.quarter_return(
-                tickers=quad_allocation[quad], 
-                date_within_quarter=datetime.date.today() + pd.offsets.QuarterEnd()*0 - pd.offsets.QuarterEnd()
-            )*100,
-            ndigits=1
-        )
+    for quad in quad_allocation:
+        try_date = datetime.date.today()
+
+        while True:
+            try:
+                current_quarter_return[quad] = round(
+                    YahooHistory.quarter_return(
+                        tickers=quad_allocation[quad], 
+                        date_within_quarter=try_date
+                    )*100,
+                    ndigits=1
+                )
+                prior_quarter_return[quad] = round(
+                    YahooHistory.quarter_return(
+                        tickers=quad_allocation[quad], 
+                        date_within_quarter=try_date + pd.offsets.QuarterEnd()*0 - pd.offsets.QuarterEnd()
+                    )*100,
+                    ndigits=1
+                )
+                break
+            except YahooHistory.DoesNotExist:
+                try_date -= datetime.timedelta(days=1)
+
         quad_allocations[quad] = YahooHistory.equal_volatility_position(quad_allocation[quad], target_value=net_liquidating_value)
 
     net_liquidating_value = round(net_liquidating_value, 0)
