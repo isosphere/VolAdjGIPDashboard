@@ -13,14 +13,14 @@ import pandas_datareader.data as web
 import pandas as pd
 import numpy as np
 
-class QuarterReturn(models.Model):
+class QuadReturn(models.Model):
     quarter_end_date = models.DateField()
     data_end_date = models.DateField()
     label = models.CharField(max_length=100)
 
     prices_updated = models.DateTimeField() # data taken from YahooHistory.updated
 
-    quarter_return = models.FloatField()
+    quad_return = models.FloatField()
 
     class Meta:
         unique_together = [['quarter_end_date', 'data_end_date', 'label']]
@@ -48,7 +48,7 @@ class SecurityHistory(models.Model):
             max_date = results.latest('date').date
         
         if lookback:
-            results = results.filter(date__gte=max_date - datetime.timedelta(days=lookback*1.6)) # this math is impercise because of weekends
+            results = results.filter(date__gte=max_date - datetime.timedelta(days=lookback*2)) # this math is impercise because of weekends
       
         results = results.values('date', 'ticker', 'close_price')
 
@@ -67,7 +67,6 @@ class AlphaVantageHistory(SecurityHistory):
     @classmethod
     def update(cls, tickers=None, clobber=False, start=None, end=None):
         logger = logging.getLogger('AlphaVantageHistory.update')
-        logger.setLevel(settings.LOG_LEVEL)
 
         if clobber is True or start is not None or end is not None:
             logger.warning("Clobber, start, and end are not currently supported.")
@@ -100,7 +99,6 @@ class YahooHistory(SecurityHistory):
     @classmethod
     def update(cls, tickers=None, clobber=False, start=None, end=None):
         logger = logging.getLogger('YahooHistory.update')
-        logger.setLevel(settings.LOG_LEVEL)
 
         end = end if end is not None else datetime.datetime.now()
         logger.info(f"Final date of interest for update: {end}")
@@ -144,7 +142,7 @@ class YahooHistory(SecurityHistory):
     @classmethod
     def equal_volatility_position(cls, tickers, lookback=28, target_value=10000, max_date=None):
         logger = logging.getLogger('YahooHistory.equal_volatility_position')
-        logger.setLevel(settings.LOG_LEVEL)
+        logger.debug(f"function triggered for tickers=[{tickers}], lookback={lookback}, target_value={target_value}, max_date={max_date}")
 
         standard_move = dict()
         last_price_lookup = dict()
@@ -161,6 +159,7 @@ class YahooHistory(SecurityHistory):
         for security in tickers:
             subset = dataframe[dataframe.index.get_level_values('ticker') == security]
             latest_close, realized_vol = subset.iloc[-1].close_price, subset.iloc[-1].realized_vol
+            logger.debug(f"{security} close={latest_close}, realized_vol={realized_vol}")
             
             standard_move[security] = realized_vol*latest_close
             last_price_lookup[security] = latest_close
@@ -197,26 +196,25 @@ class YahooHistory(SecurityHistory):
 
 
     @classmethod
-    def quarter_return(cls, tickers, date_within_quarter):
+    def quad_return(cls, tickers, date_within_quad):
         tickers.sort() # make the list deterministic for the same input (used for label later)
 
-        date_within_quarter += pd.offsets.QuarterEnd()*0 # this is now the quarter end date
-        
-        start_date = date_within_quarter - pd.offsets.QuarterEnd() + datetime.timedelta(days=1)
+        current_quad = QuadForecasts.objects.filter(date__lte=date_within_quad).latest('quarter_end_date', 'date').quad
+        start_date = QuadForecasts.objects.filter(date__lte=date_within_quad).exclude(quad=current_quad).latest('quarter_end_date', 'date').date
 
-        history = cls.objects.filter(ticker__in=tickers, date__gte=start_date, date__lte=date_within_quarter).order_by('date')
+        history = cls.objects.filter(ticker__in=tickers, date__gt=start_date, date__lte=date_within_quad).order_by('date')
 
         try:
-            cached = QuarterReturn.objects.filter(
-                quarter_end_date = date_within_quarter, 
-                data_end_date = date_within_quarter, 
+            cached = QuadReturn.objects.filter(
+                quarter_end_date = date_within_quad, 
+                data_end_date = date_within_quad, 
                 label = ','.join(tickers).upper(),
                 prices_updated__gte = history.latest('updated').updated
             ).latest('prices_updated')
 
-            return cached.quarter_return
+            return cached.quad_return
 
-        except QuarterReturn.DoesNotExist:
+        except QuadReturn.DoesNotExist:
             pass
 
         distinct_dates = history.values('date').distinct().values_list('date', flat=True)
@@ -243,20 +241,20 @@ class YahooHistory(SecurityHistory):
         
         end_market_value = market_value
 
-        quarter_return = end_market_value / start_market_value - 1
+        quad_return = end_market_value / start_market_value - 1
         
-        QuarterReturn.objects.filter(
-            quarter_end_date = date_within_quarter, 
-            data_end_date = date_within_quarter, 
+        QuadReturn.objects.filter(
+            quarter_end_date = date_within_quad, 
+            data_end_date = date_within_quad, 
             label = ','.join(tickers).upper(),
         ).delete() # if we had an older one, kill it
         
-        cached_return = QuarterReturn(
-            quarter_end_date = date_within_quarter, 
-            data_end_date = date_within_quarter, 
+        cached_return = QuadReturn(
+            quarter_end_date = date_within_quad, 
+            data_end_date = date_within_quad, 
             label = ','.join(tickers).upper(),
             prices_updated = history.latest('updated').updated,
-            quarter_return = quarter_return 
+            quad_return = quad_return 
         )
         cached_return.save()
         
