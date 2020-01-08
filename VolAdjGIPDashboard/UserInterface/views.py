@@ -5,27 +5,32 @@ import pandas as pd
 from django.shortcuts import render
 
 from DataAcquisition.models import AlphaVantageHistory, YahooHistory, QuadForecasts
+from django.contrib import messages
 
 
 def index(request, default_net_liquidating_value=10000, lookback=28, default_currency='USD'):
+    # For our little 4-quad chart
     current_date = datetime.date.today()
-
     quarter_int = (current_date.month - 1) // 3 + 1 
     quarter_date = datetime.date(current_date.year, 1, 1) + pd.offsets.QuarterEnd()*quarter_int
 
     quad_guesses = QuadForecasts.objects.filter(quarter_end_date=quarter_date).order_by('-date')[:2].values_list('date', 'gdp_roc', 'cpi_roc')
 
+    # Position sizing inputs
     net_liquidating_value = request.POST.get('value', default_net_liquidating_value)
     currency = request.POST.get('currency', default_currency)
 
     if currency not in ('USD', 'CAD'):
         currency = default_currency
+        messages.error(request, f"The currency you specified is not supported, so you get {default_currency} instead.")
     
     try:
         net_liquidating_value = int(net_liquidating_value)
     except ValueError:
         net_liquidating_value = default_net_liquidating_value
+        messages.error(request, f"The net liquidating value you specified was invalid, so you get {default_net_liquidating_value} instead.")
     
+    # Price and Standard Move Table
     latest_rate = AlphaVantageHistory.objects.filter(ticker='USD.CAD').latest('date').close_price
     if currency == 'CAD':
         net_liquidating_value /= latest_rate
@@ -73,9 +78,15 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
         "--.--"
     )
 
-    current_quarter_return = dict()
-    prior_quarter_return = dict()
+    # for positioning, at the bottom of our page
     quad_allocations = dict()
+
+    # Quad Return Calculation
+    current_quad = QuadForecasts.objects.latest('quarter_end_date', 'date').quad
+    prior_quad_end_date = QuadForecasts.objects.exclude(quad=current_quad).latest('quarter_end_date', 'date').date
+
+    current_quad_return = dict()
+    prior_quad_return = dict()
     
     data_updated = YahooHistory.objects.latest('updated').updated
 
@@ -84,17 +95,17 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
 
         while True:
             try:
-                current_quarter_return[quad] = round(
-                    YahooHistory.quarter_return(
+                current_quad_return[quad] = round(
+                    YahooHistory.quad_return(
                         tickers=quad_allocation[quad], 
-                        date_within_quarter=try_date
+                        date_within_quad=try_date
                     )*100,
                     ndigits=1
                 )
-                prior_quarter_return[quad] = round(
-                    YahooHistory.quarter_return(
+                prior_quad_return[quad] = round(
+                    YahooHistory.quad_return(
                         tickers=quad_allocation[quad], 
-                        date_within_quarter=try_date + pd.offsets.QuarterEnd()*0 - pd.offsets.QuarterEnd()
+                        date_within_quad=prior_quad_end_date
                     )*100,
                     ndigits=1
                 )
@@ -107,13 +118,14 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
     net_liquidating_value = round(net_liquidating_value, 0)
 
     return render(request, 'UserInterface/index.htm', {
-        'current_quarter_return': current_quarter_return,
-        'prior_quarter_return': prior_quarter_return,
+        'current_quad_return': current_quad_return,
+        'prior_quad_return': prior_quad_return,
         'quad_allocations': quad_allocations,
         'latest_date': latest_date,
         'target_value': net_liquidating_value,
         'data_updated': data_updated,
         'symbol_values': symbol_values,
         'lookback': lookback,
-        'roc_data': quad_guesses
+        'roc_data': quad_guesses,
+        'prior_quad_end': prior_quad_end_date
     })

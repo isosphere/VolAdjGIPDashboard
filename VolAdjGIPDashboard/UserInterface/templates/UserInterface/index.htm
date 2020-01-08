@@ -40,7 +40,7 @@
             <div class="col-sm">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Prior Quarter</h5>
+                        <h5 class="card-title">Prior Quad - Ended {{prior_quad_end}}</h5>
                         <p class="card-text">
                             <table class="table">
                                 <thead class="thead-dark">
@@ -49,7 +49,7 @@
                                         <th>Return</th>
                                     </tr>
                                 </thead>
-                                {% for quad, value in prior_quarter_return.items %}
+                                {% for quad, value in prior_quad_return.items %}
                                 {% if value <= 0 %}
                                 <tr class="text-danger">
                                 {% else %}
@@ -66,7 +66,7 @@
             <div class="col-sm">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Current Quarter</h5>
+                        <h5 class="card-title">Current Quad</h5>
                         <p class="card-text">
                             <table class="table">
                                 <thead class="thead-dark">
@@ -75,7 +75,7 @@
                                         <th>Return</th>
                                     </tr>
                                 </thead>
-                                {% for quad, value in current_quarter_return.items %}
+                                {% for quad, value in current_quad_return.items %}
                                 {% if value <= 0 %}
                                 <tr class="text-danger">
                                 {% else %}
@@ -92,7 +92,7 @@
             <div class="col-sm">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Quad Outlook (this quarter)</h5>
+                        <h5 class="card-title">Quad Outlook (this calendar quarter)</h5>
                         <p class="card-text">
                             <canvas id="quad_updates" width="400" height="250"></canvas>
                         </p>
