@@ -381,8 +381,6 @@ class QuadForecasts(models.Model):
 
         second_order_estimates.drop(['gdp', 'number', 'actual_gdp'], inplace=True, axis='columns') # these columns are confusing anyway due to shifting
         second_order_estimates.dropna(how='all', inplace=True) # if all columns are null, drop
-
-        second_order_estimates = second_order_estimates.groupby('quarter').tail(1)
         
         return second_order_estimates
 
@@ -436,7 +434,14 @@ class QuadForecasts(models.Model):
     @classmethod
     def update(cls):
         gdp, cpi = cls.fetch_usa_gi_data()
-        usa_quads = cls.determine_quads(gdp, cpi)
+        usa_quads = cls.determine_quads(gdp, cpi).dropna()
+        usa_quads = usa_quads[
+            (usa_quads.index.get_level_values('date') <= usa_quads.index.get_level_values('quarter')) &
+            (usa_quads.index.get_level_values('date') > usa_quads.index.get_level_values('quarter') - pd.offsets.QuarterEnd())
+        ]
+
+        usa_quads['changed'] = usa_quads.quad != usa_quads.shift(1).quad
+        usa_quads = usa_quads[usa_quads.changed == True].drop(['changed'], axis='columns')
 
         for row in usa_quads.itertuples():
             quarter, date = row.Index
