@@ -435,13 +435,14 @@ class QuadForecasts(models.Model):
     def update(cls):
         gdp, cpi = cls.fetch_usa_gi_data()
         usa_quads = cls.determine_quads(gdp, cpi).dropna()
+
+        max_date = usa_quads.index.get_level_values('date').max()
+
         usa_quads = usa_quads[
             (usa_quads.index.get_level_values('date') <= usa_quads.index.get_level_values('quarter')) &
-            (usa_quads.index.get_level_values('date') > usa_quads.index.get_level_values('quarter') - pd.offsets.QuarterEnd())
+            (usa_quads.index.get_level_values('date') > usa_quads.index.get_level_values('quarter') - pd.offsets.QuarterEnd()) &
+            (usa_quads.index.get_level_values('date') > max_date - datetime.timedelta(days=365))
         ]
-
-        usa_quads['changed'] = usa_quads.quad != usa_quads.shift(1).quad
-        usa_quads = usa_quads[usa_quads.changed == True].drop(['changed'], axis='columns')
 
         for row in usa_quads.itertuples():
             quarter, date = row.Index
