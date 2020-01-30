@@ -452,7 +452,7 @@ class QuadForecasts(models.Model):
             except ValueError:
                 continue
 
-            cls.objects.get_or_create(
+            cls.objects.update_or_create(
                 quarter_end_date = quarter.date(), 
                 date = date.date(), 
                 defaults = {
