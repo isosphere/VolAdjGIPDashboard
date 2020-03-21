@@ -39,7 +39,7 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
         1: ['QQQ',],
         2: ['XLF', 'XLI', 'QQQ'],
         3: ['GLD',],
-        4: ['XLU', 'TLT']
+        4: ['XLU', 'TLT', 'UUP']
     }
 
     symbol_values = dict()
