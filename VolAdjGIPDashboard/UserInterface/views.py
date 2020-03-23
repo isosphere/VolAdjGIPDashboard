@@ -123,6 +123,7 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
 
         quad_allocations[quad] = YahooHistory.equal_volatility_position(quad_allocation[quad], target_value=net_liquidating_value)
 
+    # FIXME should be an unnecessary try/catch
     try:
         current_quad_start = QuadReturn.objects.latest('quarter_end_date', 'data_end_date').data_start_date
     except QuadReturn.DoesNotExist:
