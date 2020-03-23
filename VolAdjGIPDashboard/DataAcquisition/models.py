@@ -213,7 +213,7 @@ class YahooHistory(SecurityHistory):
 
         try:
             cached = QuadReturn.objects.filter(
-                quarter_end_date = date_within_quad,
+                quarter_end_date = current_quad.quarter_end_date,
                 data_start_date = start_date,
                 data_end_date = date_within_quad, 
                 label = ','.join(tickers).upper(),
@@ -252,14 +252,14 @@ class YahooHistory(SecurityHistory):
         quad_return = end_market_value / start_market_value - 1
         
         QuadReturn.objects.filter(
-            quarter_end_date = date_within_quad,
+            quarter_end_date = current_quad.quarter_end_date,
             data_start_date = start_date, 
             data_end_date = date_within_quad, 
             label = ','.join(tickers).upper(),
         ).delete() # if we had an older one, kill it
         
         cached_return = QuadReturn(
-            quarter_end_date = date_within_quad, 
+            quarter_end_date = current_quad.quarter_end_date, 
             data_end_date = date_within_quad,
             data_start_date = start_date,
             label = ','.join(tickers).upper(),
