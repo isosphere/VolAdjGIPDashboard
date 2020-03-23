@@ -5,6 +5,7 @@ import pandas as pd
 from django.shortcuts import render
 
 from DataAcquisition.models import AlphaVantageHistory, YahooHistory, QuadForecasts, QuadReturn
+from django.db.models import F
 from django.contrib import messages
 
 
@@ -82,12 +83,16 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
     quad_allocations = dict()
 
     # Quad Return Calculation
-    current_quad = QuadForecasts.objects.latest('quarter_end_date', 'date').quad
+    current_quad_forecast = QuadForecasts.objects.latest('quarter_end_date', 'date')
+    current_quad, quarter_end_date = current_quad_forecast.quad, current_quad_forecast.quarter_end_date
+
     current_quad_return = dict()
     prior_quad_return = dict()
     
     data_updated = YahooHistory.objects.latest('updated').updated
-    prior_quad_end_date = QuadForecasts.objects.exclude(quad=current_quad).latest('quarter_end_date', 'date').date
+    print(quarter_end_date)
+    prior_quad_end_date = QuadForecasts.objects.exclude(quarter_end_date__gte=quarter_end_date).filter(date__lte=F('quarter_end_date')).latest('quarter_end_date', 'date').date
+    print(prior_quad_end_date)
 
     for quad in quad_allocation:
         try_date = datetime.date.today()

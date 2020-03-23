@@ -204,7 +204,7 @@ class YahooHistory(SecurityHistory):
         current_quad = QuadForecasts.objects.filter(date__lte=date_within_quad).latest('quarter_end_date', 'date')
 
         # this is the last known date for the prior quad
-        start_date = QuadForecasts.objects.filter(date__lt=current_quad.date).exclude(quad=current_quad.quad).latest('quarter_end_date', 'date').date
+        start_date = QuadForecasts.objects.filter(date__lt=current_quad.date).exclude(quad=current_quad.quad, quarter_end_date=current_quad.quarter_end_date).latest('quarter_end_date', 'date').date
         
         # this is when we started this quad
         start_date = QuadForecasts.objects.filter(date__gt=start_date, quad=current_quad.quad).earliest('date').date
