@@ -10,11 +10,13 @@ from dateutil.parser import parse
 from django.db import models
 from django.conf import settings
 import pandas_datareader.data as web
+
 import pandas as pd
 import numpy as np
 
 class QuadReturn(models.Model):
     quarter_end_date = models.DateField()
+    data_start_date = models.DateField()
     data_end_date = models.DateField()
     label = models.CharField(max_length=100)
 
@@ -23,7 +25,7 @@ class QuadReturn(models.Model):
     quad_return = models.FloatField()
 
     class Meta:
-        unique_together = [['quarter_end_date', 'data_end_date', 'label']]
+        unique_together = [['quarter_end_date', 'data_start_date', 'data_end_date', 'label']]
     
 
 class SecurityHistory(models.Model):
@@ -49,7 +51,7 @@ class SecurityHistory(models.Model):
         
         if lookback:
             results = results.filter(date__gte=max_date - datetime.timedelta(days=lookback*2)) # this math is impercise because of weekends
-      
+        
         results = results.values('date', 'ticker', 'close_price')
 
         dataframe = pd.DataFrame.from_records(results, columns=['date', 'ticker', 'close_price'], coerce_float=True)
@@ -199,14 +201,20 @@ class YahooHistory(SecurityHistory):
     def quad_return(cls, tickers, date_within_quad):
         tickers.sort() # make the list deterministic for the same input (used for label later)
 
-        current_quad = QuadForecasts.objects.filter(date__lte=date_within_quad).latest('quarter_end_date', 'date').quad
-        start_date = QuadForecasts.objects.filter(date__lte=date_within_quad).exclude(quad=current_quad).latest('quarter_end_date', 'date').date
+        current_quad = QuadForecasts.objects.filter(date__lte=date_within_quad).latest('quarter_end_date', 'date')
 
-        history = cls.objects.filter(ticker__in=tickers, date__gt=start_date, date__lte=date_within_quad).order_by('date')
+        # this is the last known date for the prior quad
+        start_date = QuadForecasts.objects.filter(date__lt=current_quad.date).exclude(quad=current_quad.quad).latest('quarter_end_date', 'date').date
+        
+        # this is when we started this quad
+        start_date = QuadForecasts.objects.filter(date__gt=start_date, quad=current_quad.quad).earliest('date').date
+        
+        history = cls.objects.filter(ticker__in=tickers, date__gte=start_date, date__lte=date_within_quad).order_by('date')
 
         try:
             cached = QuadReturn.objects.filter(
-                quarter_end_date = date_within_quad, 
+                quarter_end_date = date_within_quad,
+                data_start_date = start_date,
                 data_end_date = date_within_quad, 
                 label = ','.join(tickers).upper(),
                 prices_updated__gte = history.latest('updated').updated
@@ -244,14 +252,16 @@ class YahooHistory(SecurityHistory):
         quad_return = end_market_value / start_market_value - 1
         
         QuadReturn.objects.filter(
-            quarter_end_date = date_within_quad, 
+            quarter_end_date = date_within_quad,
+            data_start_date = start_date, 
             data_end_date = date_within_quad, 
             label = ','.join(tickers).upper(),
         ).delete() # if we had an older one, kill it
         
         cached_return = QuadReturn(
             quarter_end_date = date_within_quad, 
-            data_end_date = date_within_quad, 
+            data_end_date = date_within_quad,
+            data_start_date = start_date,
             label = ','.join(tickers).upper(),
             prices_updated = history.latest('updated').updated,
             quad_return = quad_return 
@@ -336,9 +346,9 @@ class QuadForecasts(models.Model):
         '''
         Fetches the latest GDP and CPI numbers + forecasts. Excludes older forecast data.
         '''
-    
+
         start_date = datetime.date(2008, 1, 1)
-        
+
         # Real GDP, seasonally adjusted. Quarterly.
         gdp_data = web.DataReader('GDPC1', 'fred', start = start_date)['GDPC1']
 
