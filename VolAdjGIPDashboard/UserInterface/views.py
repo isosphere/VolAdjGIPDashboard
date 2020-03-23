@@ -123,11 +123,17 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
 
         quad_allocations[quad] = YahooHistory.equal_volatility_position(quad_allocation[quad], target_value=net_liquidating_value)
 
-    current_quad_start = QuadReturn.objects.latest('quarter_end_date', 'data_end_date').data_start_date
-
-    prior_quad = QuadReturn.objects.filter(data_end_date__lt=current_quad_start).latest('quarter_end_date', 'data_end_date')
-    prior_quad_start = prior_quad.data_start_date
-    prior_quad_end = prior_quad.data_end_date
+    try:
+        current_quad_start = QuadReturn.objects.latest('quarter_end_date', 'data_end_date').data_start_date
+    except QuadReturn.DoesNotExist:
+        current_quad_start = '?'
+    
+    try:
+        prior_quad = QuadReturn.objects.filter(data_end_date__lt=current_quad_start).latest('quarter_end_date', 'data_end_date')
+        prior_quad_start = prior_quad.data_start_date
+        prior_quad_end = prior_quad.data_end_date
+    except QuadReturn.DoesNotExist:
+        prior_quad_start, prior_quad_end = '?', '?'
 
     net_liquidating_value = round(net_liquidating_value, 0)
 
