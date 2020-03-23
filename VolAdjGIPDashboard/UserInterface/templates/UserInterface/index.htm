@@ -60,7 +60,7 @@
                                 {% endfor %}
                             </table>
                             <ul>
-                                <li>Ended {{prior_quad_end}}</li>
+                                <li>{{prior_quad_start}} - {{prior_quad_end}}</li>
                             </ul>
                         </p>
                     </div>
@@ -88,6 +88,9 @@
                                 </tr>
                                 {% endfor %}
                             </table>
+                            <ul>
+                                <li>{{current_quad_start}} - present</li>
+                            </ul>
                         </p>
                     </div>
                 </div>
@@ -248,4 +251,3 @@
         </script>
     </body>
 </html>
-      

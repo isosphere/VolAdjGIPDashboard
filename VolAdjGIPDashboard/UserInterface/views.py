@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from django.shortcuts import render
 
-from DataAcquisition.models import AlphaVantageHistory, YahooHistory, QuadForecasts
+from DataAcquisition.models import AlphaVantageHistory, YahooHistory, QuadForecasts, QuadReturn
 from django.contrib import messages
 
 
@@ -83,15 +83,15 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
 
     # Quad Return Calculation
     current_quad = QuadForecasts.objects.latest('quarter_end_date', 'date').quad
-    prior_quad_end_date = QuadForecasts.objects.exclude(quad=current_quad).latest('quarter_end_date', 'date').date
-
     current_quad_return = dict()
     prior_quad_return = dict()
     
     data_updated = YahooHistory.objects.latest('updated').updated
+    prior_quad_end_date = QuadForecasts.objects.exclude(quad=current_quad).latest('quarter_end_date', 'date').date
 
     for quad in quad_allocation:
         try_date = datetime.date.today()
+        attempts = 7
 
         while True:
             try:
@@ -112,8 +112,22 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
                 break
             except YahooHistory.DoesNotExist:
                 try_date -= datetime.timedelta(days=1)
+                attempts -= 1
+                if attempts == 0:
+                    current_quad_return[quad] = "N/A"
+                    break     
+
+            except QuadForecasts.DoesNotExist:
+                current_quad_return[quad] = "N/A"
+                break
 
         quad_allocations[quad] = YahooHistory.equal_volatility_position(quad_allocation[quad], target_value=net_liquidating_value)
+
+    current_quad_start = QuadReturn.objects.latest('quarter_end_date', 'data_end_date').data_start_date
+
+    prior_quad = QuadReturn.objects.filter(data_end_date__lt=current_quad_start).latest('quarter_end_date', 'data_end_date')
+    prior_quad_start = prior_quad.data_start_date
+    prior_quad_end = prior_quad.data_end_date
 
     net_liquidating_value = round(net_liquidating_value, 0)
 
@@ -127,5 +141,8 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
         'symbol_values': symbol_values,
         'lookback': lookback,
         'roc_data': quad_guesses,
-        'prior_quad_end': prior_quad_end_date
+
+        'current_quad_start': current_quad_start,
+        'prior_quad_start': prior_quad_start,
+        'prior_quad_end': prior_quad_end
     })

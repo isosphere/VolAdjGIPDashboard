@@ -10,11 +10,13 @@ from dateutil.parser import parse
 from django.db import models
 from django.conf import settings
 import pandas_datareader.data as web
+
 import pandas as pd
 import numpy as np
 
 class QuadReturn(models.Model):
     quarter_end_date = models.DateField()
+    data_start_date = models.DateField()
     data_end_date = models.DateField()
     label = models.CharField(max_length=100)
 
@@ -23,7 +25,7 @@ class QuadReturn(models.Model):
     quad_return = models.FloatField()
 
     class Meta:
-        unique_together = [['quarter_end_date', 'data_end_date', 'label']]
+        unique_together = [['quarter_end_date', 'data_start_date', 'data_end_date', 'label']]
     
 
 class SecurityHistory(models.Model):
@@ -49,7 +51,7 @@ class SecurityHistory(models.Model):
         
         if lookback:
             results = results.filter(date__gte=max_date - datetime.timedelta(days=lookback*2)) # this math is impercise because of weekends
-      
+        
         results = results.values('date', 'ticker', 'close_price')
 
         dataframe = pd.DataFrame.from_records(results, columns=['date', 'ticker', 'close_price'], coerce_float=True)
@@ -199,14 +201,20 @@ class YahooHistory(SecurityHistory):
     def quad_return(cls, tickers, date_within_quad):
         tickers.sort() # make the list deterministic for the same input (used for label later)
 
-        current_quad = QuadForecasts.objects.filter(date__lte=date_within_quad).latest('quarter_end_date', 'date').quad
-        start_date = QuadForecasts.objects.filter(date__lte=date_within_quad).exclude(quad=current_quad).latest('quarter_end_date', 'date').date
+        current_quad = QuadForecasts.objects.filter(date__lte=date_within_quad).latest('quarter_end_date', 'date')
 
-        history = cls.objects.filter(ticker__in=tickers, date__gt=start_date, date__lte=date_within_quad).order_by('date')
+        # this is the last known date for the prior quad
+        start_date = QuadForecasts.objects.filter(date__lt=current_quad.date).exclude(quad=current_quad.quad).latest('quarter_end_date', 'date').date
+        
+        # this is when we started this quad
+        start_date = QuadForecasts.objects.filter(date__gt=start_date, quad=current_quad.quad).earliest('date').date
+        
+        history = cls.objects.filter(ticker__in=tickers, date__gte=start_date, date__lte=date_within_quad).order_by('date')
 
         try:
             cached = QuadReturn.objects.filter(
-                quarter_end_date = date_within_quad, 
+                quarter_end_date = date_within_quad,
+                data_start_date = start_date,
                 data_end_date = date_within_quad, 
                 label = ','.join(tickers).upper(),
                 prices_updated__gte = history.latest('updated').updated
@@ -244,14 +252,16 @@ class YahooHistory(SecurityHistory):
         quad_return = end_market_value / start_market_value - 1
         
         QuadReturn.objects.filter(
-            quarter_end_date = date_within_quad, 
+            quarter_end_date = date_within_quad,
+            data_start_date = start_date, 
             data_end_date = date_within_quad, 
             label = ','.join(tickers).upper(),
         ).delete() # if we had an older one, kill it
         
         cached_return = QuadReturn(
             quarter_end_date = date_within_quad, 
-            data_end_date = date_within_quad, 
+            data_end_date = date_within_quad,
+            data_start_date = start_date,
             label = ','.join(tickers).upper(),
             prices_updated = history.latest('updated').updated,
             quad_return = quad_return 
@@ -263,6 +273,49 @@ class YahooHistory(SecurityHistory):
     class Meta:
         unique_together = [['ticker', 'date']]
 
+
+class CPIForecast(models.Model):
+    quarter_end_date = models.DateField()
+    date = models.DateField() # updated date
+    cpi = models.FloatField()
+
+    @classmethod
+    def update(cls):
+        url = r'https://www.forecasts.org/inf/cpi-data.csv'
+    
+        response = requests.get(url, allow_redirects=True)
+
+        # determine when this data was updated
+        url_time_string = response.headers['last-modified']
+        url_time = datetime.datetime.strptime(url_time_string, '%a, %d %b %Y %H:%M:%S %Z')
+
+        memory_handle = io.BytesIO(response.content)
+        
+        dataframe = pd.read_csv(memory_handle, header=0, names=["Quarter", "CPI", "Note"], skipfooter=2, engine="python")
+        dataframe = dataframe.loc[dataframe.Note.str.contains("Forecast")]
+        
+        dataframe["Quarter"] = pd.to_datetime(dataframe.Quarter)
+        dataframe.set_index('Quarter', inplace=True)
+        
+        cpi_forecasts = dataframe.CPI.resample(rule='Q', level='Quarter').mean()
+
+        for quarter, cpi in cpi_forecasts.iteritems():
+            cls.objects.update_or_create(
+                quarter_end_date = quarter.date(), 
+                date = url_time, 
+                defaults = {
+                    'cpi': cpi,              
+                }
+            )
+    
+    @classmethod
+    def dataframe(cls):
+        latest_date = cls.objects.latest('date').date
+
+        dataset = pd.DataFrame.from_records(cls.objects.filter(date=latest_date).values())
+        dataset.set_index('quarter_end_date', inplace=True)
+
+        return dataset
 
 class QuadForecasts(models.Model):
     quarter_end_date = models.DateField()
@@ -289,21 +342,13 @@ class QuadForecasts(models.Model):
             return 4
 
     @classmethod
-    def fetch_usa_cpi_nowcasts(cls):
-        url = r'https://www.forecasts.org/inf/cpi-data.csv'
-    
-        response = requests.get(url, allow_redirects=True)
-        memory_handle = io.BytesIO(response.content)
-        
-        dataframe = pd.read_csv(memory_handle, index_col="Date", header=0, names=["Date", "CPI", "Note"], skipfooter=2, engine="python")
-        dataframe.index= pd.to_datetime(dataframe.index)
-        cpi_forecasts = dataframe.loc[dataframe.Note.str.contains("Forecast")]["CPI"].resample('Q').mean()
-        
-        return cpi_forecasts
-
-    @classmethod
     def fetch_usa_gi_data(cls):
-        start_date = datetime.date(2001,1,1)
+        '''
+        Fetches the latest GDP and CPI numbers + forecasts. Excludes older forecast data.
+        '''
+
+        start_date = datetime.date(2008, 1, 1)
+
         # Real GDP, seasonally adjusted. Quarterly.
         gdp_data = web.DataReader('GDPC1', 'fred', start = start_date)['GDPC1']
 
@@ -316,10 +361,12 @@ class QuadForecasts(models.Model):
         cpi_all_urban_unadjusted_data = web.DataReader('CPIAUCNS', 'fred', start = start_date)['CPIAUCNS']    
         cpi_data = cpi_all_urban_unadjusted_data.resample('Q').mean()
 
-        cpi_nowcasts = cls.fetch_usa_cpi_nowcasts()
-        cpi_data = pd.concat([cpi_data[~(cpi_data.index.isin(cpi_nowcasts.index))], cpi_nowcasts])
+        cpi_nowcasts = CPIForecast.dataframe()        
+        latest_date = cpi_nowcasts.date.max()
 
-        return gdp_data, cpi_data            
+        cpi_data = pd.concat([cpi_data[~(cpi_data.index.isin(cpi_nowcasts.cpi.index))], cpi_nowcasts.cpi])
+
+        return gdp_data, cpi_data, latest_date
 
     @classmethod
     def get_new_york_fed_gdp_nowcasts(cls):
@@ -433,7 +480,7 @@ class QuadForecasts(models.Model):
 
     @classmethod
     def update(cls):
-        gdp, cpi = cls.fetch_usa_gi_data()
+        gdp, cpi, latest_date = cls.fetch_usa_gi_data()
         usa_quads = cls.determine_quads(gdp, cpi).dropna()
 
         max_date = usa_quads.index.get_level_values('date').max()
@@ -454,7 +501,7 @@ class QuadForecasts(models.Model):
 
             cls.objects.update_or_create(
                 quarter_end_date = quarter.date(), 
-                date = date.date(), 
+                date = latest_date, 
                 defaults = {
                     'updated': datetime.datetime.now(),
                     'cpi_roc': row.cpi_roc,
