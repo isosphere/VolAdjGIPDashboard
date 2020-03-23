@@ -90,9 +90,7 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
     prior_quad_return = dict()
     
     data_updated = YahooHistory.objects.latest('updated').updated
-    print(quarter_end_date)
     prior_quad_end_date = QuadForecasts.objects.exclude(quarter_end_date__gte=quarter_end_date).filter(date__lte=F('quarter_end_date')).latest('quarter_end_date', 'date').date
-    print(prior_quad_end_date)
 
     for quad in quad_allocation:
         try_date = datetime.date.today()
