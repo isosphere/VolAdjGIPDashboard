@@ -202,9 +202,11 @@ class YahooHistory(SecurityHistory):
         tickers.sort() # make the list deterministic for the same input (used for label later)
 
         current_quad = QuadForecasts.objects.filter(date__lte=date_within_quad).latest('quarter_end_date', 'date')
+        print(f"current_quad quarter={current_quad.quarter_end_date} date={current_quad.date}")
 
         # this is the last known date for the prior quad
-        start_date = QuadForecasts.objects.filter(date__lt=current_quad.date).exclude(quad=current_quad.quad, quarter_end_date=current_quad.quarter_end_date).latest('quarter_end_date', 'date').date
+        start_date = QuadForecasts.objects.filter(date__lt=current_quad.date).exclude(quad=current_quad.quad, quarter_end_date__gte=current_quad.quarter_end_date).latest('quarter_end_date', 'date').quarter_end_date
+        print(f"last known date for prior quad: {start_date}")
         
         # this is when we started this quad
         start_date = QuadForecasts.objects.filter(date__gt=start_date, quad=current_quad.quad).earliest('date').date
@@ -237,7 +239,7 @@ class YahooHistory(SecurityHistory):
             if prior_positioning is not None:
                 for leg in prior_positioning:
                     market_value += prior_positioning[leg]*(history.get(ticker=leg, date=date).close_price - prior_cost_basis[leg])
-                    
+            
             # accumulate
             new_positioning = cls.equal_volatility_position(tickers, max_date=date, target_value=market_value)
             
