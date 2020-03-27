@@ -376,15 +376,17 @@ class QuadForecasts(models.Model):
         memory_handle = io.BytesIO(response.content)
 
         data = pd.read_excel(memory_handle, sheet_name='Forecasts By Quarter', header=13)
+        latest_date = data['Forecast Date'].max().date()
+
         data = data.melt(id_vars=['Forecast Date'], var_name="quarter", value_name="forecast")
         data.columns = ['date', 'quarter', 'forecast']
         data['quarter'] = pd.to_datetime(data.quarter) + pd.offsets.QuarterEnd()*0
         
-        return data
+        return data, latest_date
 
     @classmethod
     def get_gdp_set(cls, actual_gdp):
-        data = cls.get_new_york_fed_gdp_nowcasts()
+        data, latest_date = cls.get_new_york_fed_gdp_nowcasts()
 
         data.set_index(['quarter', 'date'], inplace=True)
 
@@ -429,11 +431,11 @@ class QuadForecasts(models.Model):
         second_order_estimates.drop(['gdp', 'number', 'actual_gdp'], inplace=True, axis='columns') # these columns are confusing anyway due to shifting
         second_order_estimates.dropna(how='all', inplace=True) # if all columns are null, drop
         
-        return second_order_estimates
+        return second_order_estimates, latest_date
 
     @classmethod
     def determine_quads(cls, actual_gdp, actual_cpi):
-        dataframe = cls.get_gdp_set(actual_gdp)
+        dataframe, latest_date = cls.get_gdp_set(actual_gdp)
         dataframe.drop('growth', inplace=True, axis='columns')
 
         # Collect required GDP numbers
@@ -476,12 +478,15 @@ class QuadForecasts(models.Model):
             'past_cpi_yoy', 'past_gdp_yoy',
         ], inplace=True, axis='columns')    
 
-        return dataframe
+        return dataframe, latest_date
 
     @classmethod
     def update(cls):
-        gdp, cpi, latest_date = cls.fetch_usa_gi_data()
-        usa_quads = cls.determine_quads(gdp, cpi).dropna()
+        gdp, cpi, latest_cpi_date = cls.fetch_usa_gi_data()
+        usa_quads, latest_gdp_date = cls.determine_quads(gdp, cpi)
+        usa_quads.dropna(inplace=True)
+
+        latest_date = max(latest_cpi_date, latest_gdp_date)
 
         max_date = usa_quads.index.get_level_values('date').max()
 
