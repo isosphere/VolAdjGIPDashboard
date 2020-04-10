@@ -205,7 +205,8 @@ class YahooHistory(SecurityHistory):
         print(f"current_quad quarter={current_quad.quarter_end_date} date={current_quad.date}")
 
         # this is the last known date for the prior quad
-        start_date = QuadForecasts.objects.filter(date__lt=current_quad.date).exclude(quad=current_quad.quad, quarter_end_date__gte=current_quad.quarter_end_date).latest('quarter_end_date', 'date').quarter_end_date
+        #start_date = QuadForecasts.objects.filter(date__lt=current_quad.date).exclude(quad=current_quad.quad, quarter_end_date__gte=current_quad.quarter_end_date).latest('quarter_end_date', 'date').quarter_end_date
+        start_date = (date_within_quad - pd.tseries.offsets.QuarterBegin()).date()
         print(f"last known date for prior quad: {start_date}")
         
         # this is when we started this quad
