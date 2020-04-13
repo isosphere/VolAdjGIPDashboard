@@ -123,7 +123,11 @@ class YahooHistory(SecurityHistory):
                 except cls.DoesNotExist:
                     pass
             
-            dataframe = web.DataReader(security, 'yahoo', start, end)
+            try:
+                dataframe = web.DataReader(security, 'yahoo', start, end)
+            except KeyError:
+                logger.error(f"No data found for {security}")
+                continue
             
             # take credit for dividends!
             if 'Adj Close' in dataframe.columns:
