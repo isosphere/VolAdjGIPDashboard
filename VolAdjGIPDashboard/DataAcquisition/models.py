@@ -349,12 +349,13 @@ class QuadForecasts(models.Model):
             return 4
 
     @classmethod
-    def fetch_usa_gi_data(cls):
+    def fetch_usa_gi_data(cls, start_date=None):
         '''
         Fetches the latest GDP and CPI numbers + forecasts. Excludes older forecast data.
         '''
 
-        start_date = datetime.date(2008, 1, 1)
+        if start_date is None:        
+            start_date = datetime.date(2008, 1, 1)
 
         # Real GDP, seasonally adjusted. Quarterly.
         gdp_data = web.DataReader('GDPC1', 'fred', start = start_date)['GDPC1']
@@ -417,11 +418,12 @@ class QuadForecasts(models.Model):
 
         actual_current_gdp = pd.DataFrame({
             'date': actual_gdp.index,
+            'quarter': actual_gdp.index,
             'actual_gdp': actual_gdp.values
-        }).set_index('date')
+        }).set_index(['quarter', 'date'])
 
         second_order_estimates = pd.concat([forecasted_gdp, first_order_estimates], join='outer', sort=True, axis=1)
-        second_order_estimates = second_order_estimates.join(actual_current_gdp, on='quarter')
+        second_order_estimates = pd.concat([actual_current_gdp, second_order_estimates], levels=['quarter', 'date'], axis=0)
 
         second_order_estimates = second_order_estimates.assign(
             best_estimate = np.where(
