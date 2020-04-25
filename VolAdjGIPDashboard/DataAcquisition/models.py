@@ -23,6 +23,7 @@ class QuadReturn(models.Model):
     prices_updated = models.DateTimeField() # data taken from YahooHistory.updated
 
     quad_return = models.FloatField()
+    quad_stdev = models.FloatField()
 
     class Meta:
         unique_together = [['quarter_end_date', 'data_start_date', 'data_end_date', 'label']]
@@ -227,7 +228,7 @@ class YahooHistory(SecurityHistory):
                 prices_updated__gte = history.latest('updated').updated
             ).latest('prices_updated')
 
-            return cached.quad_return
+            return cached.quad_return, cached.quad_stdev
 
         except QuadReturn.DoesNotExist:
             pass
@@ -238,6 +239,8 @@ class YahooHistory(SecurityHistory):
         prior_cost_basis = dict()
         start_market_value = 10000
         market_value = start_market_value
+
+        market_value_history = [start_market_value,]
         
         for date in distinct_dates:
             # liquidate
@@ -245,6 +248,8 @@ class YahooHistory(SecurityHistory):
                 for leg in prior_positioning:
                     market_value += prior_positioning[leg]*(history.get(ticker=leg, date=date).close_price - prior_cost_basis[leg])
             
+            market_value_history.append(market_value)
+
             # accumulate
             new_positioning = cls.equal_volatility_position(tickers, max_date=date, target_value=market_value)
             
@@ -257,6 +262,7 @@ class YahooHistory(SecurityHistory):
         end_market_value = market_value
 
         quad_return = end_market_value / start_market_value - 1
+        quad_stdev = pd.DataFrame(market_value_history).pct_change().std(ddof=1).values[0]
         
         QuadReturn.objects.filter(
             quarter_end_date = current_quad.quarter_end_date,
@@ -271,11 +277,12 @@ class YahooHistory(SecurityHistory):
             data_start_date = start_date,
             label = ','.join(tickers).upper(),
             prices_updated = history.latest('updated').updated,
-            quad_return = quad_return 
+            quad_return = quad_return,
+            quad_stdev = quad_stdev 
         )
         cached_return.save()
         
-        return end_market_value / start_market_value - 1
+        return quad_return, quad_stdev
 
     class Meta:
         unique_together = [['ticker', 'date']]

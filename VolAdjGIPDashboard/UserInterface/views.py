@@ -99,30 +99,32 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
 
         while True:
             try:
-                current_quad_return[quad] = round(
-                    YahooHistory.quad_return(
-                        tickers=quad_allocation[quad], 
-                        date_within_quad=try_date
-                    )*100,
-                    ndigits=1
-                )
-                prior_quad_return[quad] = round(
-                    YahooHistory.quad_return(
-                        tickers=quad_allocation[quad], 
-                        date_within_quad=prior_quad_end_date
-                    )*100,
-                    ndigits=1
-                )
+                current_quad_return[quad] = list(YahooHistory.quad_return(
+                    tickers=quad_allocation[quad], 
+                    date_within_quad=try_date
+                ))
+
+                current_quad_return[quad][0] = round(current_quad_return[quad][0]*100, ndigits=1)
+                current_quad_return[quad][1] = round(current_quad_return[quad][1]*100, ndigits=1)
+
+                prior_quad_return[quad] = list(YahooHistory.quad_return(
+                    tickers=quad_allocation[quad], 
+                    date_within_quad=prior_quad_end_date
+                ))
+
+                prior_quad_return[quad][0] = round(prior_quad_return[quad][0]*100, ndigits=1)
+                prior_quad_return[quad][1] = round(prior_quad_return[quad][1]*100, ndigits=1)
+
                 break
             except YahooHistory.DoesNotExist:
                 try_date -= datetime.timedelta(days=1)
                 attempts -= 1
                 if attempts == 0:
-                    current_quad_return[quad] = "N/A"
+                    current_quad_return[quad] = "N/A", "N/A"
                     break     
 
             except QuadForecasts.DoesNotExist:
-                current_quad_return[quad] = "N/A"
+                current_quad_return[quad] = "N/A", "N/A"
                 break
 
         quad_allocations[quad] = YahooHistory.equal_volatility_position(quad_allocation[quad], target_value=net_liquidating_value)
