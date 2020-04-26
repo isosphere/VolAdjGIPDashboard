@@ -91,6 +91,7 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
     
     data_updated = YahooHistory.objects.latest('updated').updated
     prior_quad_end_date = (quarter_end_date - pd.tseries.offsets.QuarterEnd(1)).date()
+    prior_quad_start = (quarter_end_date - pd.tseries.offsets.QuarterEnd(2) + datetime.timedelta(days=1)).date()
 
     for quad in quad_allocation:
         try_date = datetime.date.today()
@@ -132,7 +133,6 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
     
     try:
         prior_quad = QuadReturn.objects.filter(quarter_end_date=prior_quad_end_date).latest('quarter_end_date', 'data_end_date')
-        prior_quad_start = prior_quad.data_start_date
         prior_quad_end = current_quad_start - datetime.timedelta(days=1)
     except QuadReturn.DoesNotExist:
         prior_quad_start, prior_quad_end = '?', '?'
