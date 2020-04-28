@@ -427,7 +427,7 @@ class QuadForecasts(models.Model):
         }).set_index(['quarter', 'date'])
 
         second_order_estimates = pd.concat([forecasted_gdp, first_order_estimates], join='outer', sort=True, axis=1)
-        second_order_estimates = pd.concat([actual_current_gdp, second_order_estimates], levels=['quarter', 'date'], axis=0)
+        second_order_estimates = pd.concat([actual_current_gdp, second_order_estimates], levels=['quarter', 'date'], axis=0, sort=True)
 
         second_order_estimates = second_order_estimates.assign(
             best_estimate = np.where(
