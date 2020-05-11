@@ -4,12 +4,16 @@ import numpy as np
 import pandas as pd
 from django.shortcuts import render
 
-from DataAcquisition.models import AlphaVantageHistory, YahooHistory, QuadForecasts, QuadReturn
+from DataAcquisition.models import AlphaVantageHistory, YahooHistory, QuadForecasts, QuadReturn, CommitmentOfTraders
 from django.db.models import F
 from django.contrib import messages
 
 
 def index(request, default_net_liquidating_value=10000, lookback=28, default_currency='USD'):
+    # Commitment of Traders
+    latest_cot_date = CommitmentOfTraders.objects.latest('date').date
+    cot_data = CommitmentOfTraders.objects.filter(date=latest_cot_date).order_by('symbol')
+
     # For our little 4-quad chart
     current_date = datetime.date.today()
     quarter_int = (current_date.month - 1) // 3 + 1 
@@ -152,5 +156,8 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
 
         'current_quad_start': current_quad_start,
         'prior_quad_start': prior_quad_start,
-        'prior_quad_end': prior_quad_end
+        'prior_quad_end': prior_quad_end,
+
+        'latest_cot_date': latest_cot_date,
+        'cot_data': cot_data
     })

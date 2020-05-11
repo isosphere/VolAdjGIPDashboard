@@ -21,3 +21,4 @@ sqlparse==0.3.0
 typed-ast==1.4.0
 urllib3==1.25.6
 wrapt==1.11.2
+Quandl==3.5.0

@@ -10,6 +10,7 @@ from dateutil.parser import parse
 from django.db import models
 from django.conf import settings
 import pandas_datareader.data as web
+import quandl
 
 import pandas as pd
 import numpy as np
@@ -530,3 +531,50 @@ class QuadForecasts(models.Model):
 
     class Meta:
         unique_together = [['quarter_end_date', 'date']]
+
+class CommitmentOfTraders(models.Model):    
+    symbol = models.TextField()
+    date = models.DateField()
+    one_year_z = models.FloatField()
+    three_year_z = models.FloatField()
+
+    @classmethod
+    def process_net_long(cls, data):
+        net_long = (data['Noncommercial Long'] - data['Noncommercial Short'])
+        one_year_zscore = (net_long - net_long.rolling(52).mean()) / net_long.rolling(52).std()
+        three_year_zscore = (net_long - net_long.rolling(3*52).mean()) / net_long.rolling(3*52).std()
+
+        return one_year_zscore.tail(1)[0], three_year_zscore.tail(1)[0]
+    
+    @classmethod
+    def update(cls):
+        quandl_codes = {
+            'Gold': '088691',
+            'Feeder Cattle': '061641',
+            'Canadian Dollar': '090741',
+            'Live Cattle': '057642',
+            'VIX Futures': '1170E1',
+            'Copper': '085692',
+            'US Treasury Bond': '020601',
+            'Crude Oil': '067651',
+            '10 Year Note': '043602',
+            '2 Year Note': '042601',
+            '5 Year Note': '044601',
+            'S&P 500': '13874P',
+            'Russell 2000': '239742',
+            'Nasdaq': '20974P',
+            'United States Dollar': '098662',
+        }
+        sub_code = '_FO_L_ALL'
+
+        quandl.ApiConfig.api_key = settings.QUANDL_KEY
+
+        for key in quandl_codes:
+            mydata = quandl.get("CFTC/%s%s" % (quandl_codes[key], sub_code))
+            one_year, three_year = cls.process_net_long(mydata)  
+            obj, created = cls.objects.get_or_create(
+                date=mydata.index.max(), symbol=key, defaults={'one_year_z':one_year, 'three_year_z': three_year}
+            )
+
+    class Meta:
+        unique_together = [['symbol', 'date']]
