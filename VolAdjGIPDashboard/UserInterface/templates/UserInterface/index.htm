@@ -123,8 +123,43 @@
                             </p>
                         </div>
                     </div>
-                </div>            
-                <div class="col-xl">
+                </div>
+                <div class="col-md">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Commitment of Traders - Non-commercial Net Long Positioning - {{latest_cot_date}}</h5>
+                            <p class="card-text">
+                                <table class="table">
+                                    <thead class="thead-dark">
+                                        <tr>
+                                            <th>Security</th>
+                                            <th>1-Year Z-Score</th>
+                                            <th>3-Year Z-Score</th>
+                                        </tr>
+                                        {% for cot_value in cot_data %}
+                                        <tr>
+                                            <td>{{cot_value.symbol}}</td>
+                                            {% if cot_value.one_year_z >= 2.0 or cot_value.one_year_z <= -2.0 %}
+                                            <td class="alert-danger">
+                                            {% else %}
+                                            <td>
+                                            {% endif %}
+                                            {{cot_value.one_year_z|floatformat}}</td>
+                                            {% if cot_value.three_year_z >= 2.0 or cot_value.three_year_z <= -2.0 %}
+                                            <td class="alert-danger">
+                                            {% else %}
+                                            <td>
+                                            {% endif %}
+                                            {{cot_value.three_year_z|floatformat}}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </thead>
+                                </table>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md">
                     <div class="card">
                         <div class="card-body">
                             <h5 class="card-title">{{data_updated}} EST</h5>
