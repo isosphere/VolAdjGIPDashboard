@@ -19,7 +19,7 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
     quarter_int = (current_date.month - 1) // 3 + 1 
     quarter_date = datetime.date(current_date.year, 1, 1) + pd.offsets.QuarterEnd()*quarter_int
 
-    quad_guesses = QuadForecasts.objects.filter(quarter_end_date=quarter_date).order_by('-date')[:2].values_list('date', 'gdp_roc', 'cpi_roc')
+    quad_guesses = QuadForecasts.objects.filter(quarter_end_date=quarter_date).order_by('-date')[:3].values_list('date', 'gdp_roc', 'cpi_roc')
 
     # Position sizing inputs
     net_liquidating_value = request.POST.get('value', default_net_liquidating_value)

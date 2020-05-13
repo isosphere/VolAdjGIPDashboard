@@ -127,7 +127,7 @@
                 <div class="col-md">
                     <div class="card">
                         <div class="card-body">
-                            <h5 class="card-title">Commitment of Traders - Non-commercial Net Long Positioning - {{latest_cot_date}}</h5>
+                            <h5 class="card-title">Commitment of Traders - Non-commercial Net Long Positioning Change - {{latest_cot_date}}</h5>
                             <p class="card-text">
                                 <table class="table">
                                     <thead class="thead-dark">
@@ -257,11 +257,15 @@
                         ],
                         {% if forloop.first %}
                         pointBackgroundColor: ['#00ff00'],
-                        {% else %}
+                        {% elif forloop.last %}
                         pointBackgroundColor: ['#0000ff'],
+                        {% else %}
+                        pointBackgroundColor: ['#00cbff'],
                         {% endif %}
                         {% if forloop.first %}
                         backgroundColor: '#00ff00'
+                        {% elif forloop.last %}
+                        backgroundColor: '#00cbff'
                         {% else %}
                         backgroundColor: '#0000ff'
                         {% endif %}
