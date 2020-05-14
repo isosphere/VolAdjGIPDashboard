@@ -108,6 +108,10 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
                     date_within_quad=try_date
                 ))
 
+                current_quad_return[quad].append(round(
+                    current_quad_return[quad][0]/current_quad_return[quad][1],
+                ndigits=1))
+
                 current_quad_return[quad][0] = round(current_quad_return[quad][0]*100, ndigits=1)
                 current_quad_return[quad][1] = round(current_quad_return[quad][1]*100, ndigits=1)
 
@@ -115,6 +119,10 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
                     tickers=quad_allocation[quad], 
                     date_within_quad=prior_quad_end_date
                 ))
+
+                prior_quad_return[quad].append(round(
+                    prior_quad_return[quad][0]/prior_quad_return[quad][1],
+                ndigits=1))                
 
                 prior_quad_return[quad][0] = round(prior_quad_return[quad][0]*100, ndigits=1)
                 prior_quad_return[quad][1] = round(prior_quad_return[quad][1]*100, ndigits=1)
@@ -146,6 +154,7 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
     return render(request, 'UserInterface/index.htm', {
         'current_quad_return': current_quad_return,
         'prior_quad_return': prior_quad_return,
+
         'quad_allocations': quad_allocations,
         'latest_date': latest_date,
         'target_value': net_liquidating_value,

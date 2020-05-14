@@ -39,7 +39,7 @@
 
         <div class="container">
             <div class="row">
-                <div class="col-sm">
+                <div class="col-md">
                     <div class="card">
                         <div class="card-body">
                             <h5 class="card-title">Prior Quad</h5>
@@ -50,20 +50,28 @@
                                             <th>Quad</th>
                                             <th>Return</th>
                                             <th>σ</th>
+                                            <th>Ratio</th>
                                         </tr>
                                     </thead>
                                     {% for quad, value in prior_quad_return.items %}
                                     <tr>
                                     <td>{{quad}}</td>
                                     {% for percent in value %}
-                                        {% if forloop.first and percent < 0 %}
+                                        {% if forloop.first or forloop.last %}
+                                            {% if percent < 0 %}                                        
                                         <td class="text-danger">
-                                        {% elif forloop.first and percent > 0 %}
+                                            {% elif percent > 0 %}
                                         <td class="text-success">
-                                        {% else %}
+                                            {% else %}
+                                        <td>
+                                            {% endif %}
+                                            {% else %}
                                         <td>
                                         {% endif %}
-                                            {{percent}}%
+                                            {{percent}}
+                                            {% if not forloop.last %}
+                                            %
+                                            {% endif %}
                                         </td>
                                     {% endfor %}
                                     </tr>
@@ -76,7 +84,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-sm">
+                <div class="col-md">
                     <div class="card">
                         <div class="card-body">
                             <h5 class="card-title">Current Quad</h5>
@@ -87,6 +95,7 @@
                                             <th>Quad</th>
                                             <th>Return</th>
                                             <th>σ</th>
+                                            <th>Ratio</th>
                                         </tr>
                                     </thead>
                                     {% for quad, value in current_quad_return.items %}
@@ -94,14 +103,21 @@
                                         <td>{{quad}}</td>
 
                                         {% for percent in value %}
-                                        {% if forloop.first and percent < 0 %}
+                                        {% if forloop.first or forloop.last %}
+                                            {% if percent < 0 %}                                        
                                         <td class="text-danger">
-                                        {% elif forloop.first and percent > 0 %}
+                                            {% elif percent > 0 %}
                                         <td class="text-success">
-                                        {% else %}
+                                            {% else %}
+                                        <td>
+                                            {% endif %}
+                                            {% else %}
                                         <td>
                                         {% endif %}
-                                            {{percent}}%
+                                            {{percent}}
+                                            {% if not forloop.last %}
+                                            %
+                                            {% endif %}
                                         </td>
                                         {% endfor %}
                                     </tr>
@@ -114,6 +130,8 @@
                         </div>
                     </div>
                 </div>
+            </div>
+            <div class="row">
                 <div class="col-sm">
                     <div class="card">
                         <div class="card-body">
@@ -124,6 +142,8 @@
                         </div>
                     </div>
                 </div>
+            </div>
+            <div class="row">
                 <div class="col-md">
                     <div class="card">
                         <div class="card-body">
