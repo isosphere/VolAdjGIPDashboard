@@ -564,6 +564,11 @@ class CommitmentOfTraders(models.Model):
             'Russell 2000': '239742',
             'Nasdaq': '20974P',
             'United States Dollar': '098662',
+            'DJIA': '12460P',
+            'Lean Hogs': '054642',
+            'Coffee': '083731',
+            'Japanese Yen': '097741'
+
         }
         sub_code = '_FO_L_ALL'
 
