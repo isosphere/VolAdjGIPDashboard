@@ -540,11 +540,12 @@ class CommitmentOfTraders(models.Model):
 
     @classmethod
     def process_net_long(cls, data):
+        net_long.sort_index(inplace=True)
         net_long = (data['Noncommercial Long'] - data['Noncommercial Short'])/(data['Noncommercial Long'] + data['Noncommercial Short']).diff()
         one_year_zscore = (net_long - net_long.rolling(1*52).mean()) / net_long.rolling(52).std()
         three_year_zscore = (net_long - net_long.rolling(3*52).mean()) / net_long.rolling(3*52).std()
 
-        return one_year_zscore.tail(1)[0], three_year_zscore.tail(1)[0]
+        return one_year_zscore.loc[one_year_zscore.index == one_year_zscore.index.max()][0], three_year_zscore.loc[three_year_zscore.index == three_year_zscore.index.max()][0]
     
     @classmethod
     def update(cls):
@@ -577,7 +578,7 @@ class CommitmentOfTraders(models.Model):
         for key in quandl_codes:
             mydata = quandl.get("CFTC/%s%s" % (quandl_codes[key], sub_code))
             one_year, three_year = cls.process_net_long(mydata)  
-            obj, created = cls.objects.get_or_create(
+            obj, created = cls.objects.update_or_create(
                 date=mydata.index.max(), symbol=key, defaults={'one_year_z':one_year, 'three_year_z': three_year}
             )
 
