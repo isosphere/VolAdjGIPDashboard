@@ -540,8 +540,8 @@ class CommitmentOfTraders(models.Model):
 
     @classmethod
     def process_net_long(cls, data):
-        net_long.sort_index(inplace=True)
         net_long = (data['Noncommercial Long'] - data['Noncommercial Short'])/(data['Noncommercial Long'] + data['Noncommercial Short']).diff()
+        net_long.sort_index(inplace=True)
         one_year_zscore = (net_long - net_long.rolling(1*52).mean()) / net_long.rolling(52).std()
         three_year_zscore = (net_long - net_long.rolling(3*52).mean()) / net_long.rolling(3*52).std()
 
