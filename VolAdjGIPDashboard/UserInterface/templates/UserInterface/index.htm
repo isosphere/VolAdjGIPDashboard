@@ -84,7 +84,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md">
+                <div class="col-sm">
                     <div class="card">
                         <div class="card-body">
                             <h5 class="card-title">Current Quarter</h5>
@@ -101,7 +101,6 @@
                                     {% for quad, value in current_quad_return.items %}
                                     <tr>
                                         <td>{{quad}}</td>
-
                                         {% for percent in value %}
                                         {% if forloop.first or forloop.last %}
                                             {% if percent < 0 %}                                        
@@ -130,54 +129,50 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <div class="col-sm">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Today</h5>
-                        <p class="card-text">
-                            <table class="table">
-                                <thead class="thead-dark">
+                <div class="col-sm">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Today</h5>
+                            <p class="card-text">
+                                <table class="table">
+                                    <thead class="thead-dark">
+                                        <tr>
+                                            <th>Quad</th>
+                                            <th>Return</th>
+                                        </tr>
+                                    </thead>
+                                    {% for quad, value in daily_return.items %}
                                     <tr>
-                                        <th>Quad</th>
-                                        <th>Return</th>
+                                        <td>{{quad}}</td>
+                                        {% if value < 0 %}                                        
+                                        <td class="text-danger">
+                                        {% elif value > 0 %}
+                                        <td class="text-success">
+                                        {% endif %}
+                                            {{value|floatformat:1}}%
+                                        </td>
                                     </tr>
-                                </thead>
-                                {% for quad, value in daily_return.items %}
-                                <tr>
-                                    <td>{{quad}}</td>
-                                    {% if value < 0 %}                                        
-                                    <td class="text-danger">
-                                    {% elif value > 0 %}
-                                    <td class="text-success">
-                                    {% endif %}
-                                        {{value|floatformat:1}}%
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </table>
-                            <ul>
-                                <li>{{latest_date}}</li>
-                            </ul>
-                        </p>
+                                    {% endfor %}
+                                </table>
+                                <ul>
+                                    <li>{{latest_date}}</li>
+                                </ul>
+                            </p>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-            <div class="row">
                 <div class="col-sm">
                     <div class="card">
                         <div class="card-body">
                             <h5 class="card-title">Quad Outlook</h5>
                             <p class="card-text">
-                                <canvas id="quad_updates" width="400" height="250"></canvas>
+                                <canvas id="quad_updates"></canvas>
                             </p>
                         </div>
                     </div>
-                </div>
+                </div>            
             </div>
+        </div>
             <div class="row">
                 <div class="col-lg">
                     <div class="card">
