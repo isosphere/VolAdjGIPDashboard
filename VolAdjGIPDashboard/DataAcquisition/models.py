@@ -535,17 +535,36 @@ class QuadForecasts(models.Model):
 class CommitmentOfTraders(models.Model):    
     symbol = models.TextField()
     date = models.DateField()
+    net_long = models.FloatField()
     one_year_z = models.FloatField()
     three_year_z = models.FloatField()
+    one_year_abs_z = models.FloatField()
+    three_year_abs_z = models.FloatField()
 
     @classmethod
     def process_net_long(cls, data):
-        net_long = (data['Noncommercial Long'] - data['Noncommercial Short'])/(data['Noncommercial Long'] + data['Noncommercial Short']).diff()
+        net_long = (data['Noncommercial Long'] - data['Noncommercial Short'])
+        net_long_ratio = net_long/(data['Noncommercial Long'] + data['Noncommercial Short']).diff()
+        net_long_ratio.sort_index(inplace=True)
         net_long.sort_index(inplace=True)
-        one_year_zscore = (net_long - net_long.rolling(1*52).mean()) / net_long.rolling(52).std()
-        three_year_zscore = (net_long - net_long.rolling(3*52).mean()) / net_long.rolling(3*52).std()
 
-        return one_year_zscore.loc[one_year_zscore.index == one_year_zscore.index.max()][0], three_year_zscore.loc[three_year_zscore.index == three_year_zscore.index.max()][0]
+        # based on the difference in the net long ratio w/w
+        one_year_zscore = (net_long_ratio - net_long_ratio.rolling(1*52).mean()) / net_long_ratio.rolling(1*52).std()
+        three_year_zscore = (net_long_ratio - net_long_ratio.rolling(3*52).mean()) / net_long_ratio.rolling(3*52).std()
+
+        # based on the simple absolute number of net long positions
+        one_year_abs_zscore = (net_long - net_long.rolling(1*52).mean()) / net_long.rolling(1*52).std()
+        three_year_abs_zscore = (net_long - net_long.rolling(3*52).mean()) / net_long.rolling(3*52).std()
+        
+        latest_date = one_year_zscore.index.max()
+
+        latest_net_long = net_long.loc[net_long.index == latest_date][0]
+        latest_one_year_zscore = one_year_zscore.loc[one_year_zscore.index == latest_date][0]
+        latest_three_year_zscore = three_year_zscore.loc[three_year_zscore.index == latest_date][0]
+        latest_one_year_abs_zscore = one_year_abs_zscore.loc[three_year_zscore.index == latest_date][0]
+        latest_three_year_abs_zscore = three_year_abs_zscore.loc[three_year_zscore.index == latest_date][0]
+
+        return latest_net_long, latest_one_year_zscore, latest_three_year_zscore, latest_one_year_abs_zscore, latest_three_year_abs_zscore
     
     @classmethod
     def update(cls):
@@ -577,9 +596,15 @@ class CommitmentOfTraders(models.Model):
 
         for key in quandl_codes:
             mydata = quandl.get("CFTC/%s%s" % (quandl_codes[key], sub_code))
-            one_year, three_year = cls.process_net_long(mydata)  
+            net_long, one_year, three_year, one_year_abs, three_year_abs = cls.process_net_long(mydata)  
             obj, created = cls.objects.update_or_create(
-                date=mydata.index.max(), symbol=key, defaults={'one_year_z':one_year, 'three_year_z': three_year}
+                date=mydata.index.max(), symbol=key, defaults={
+                    'one_year_z': one_year, 
+                    'three_year_z': three_year,
+                    'one_year_abs_z': one_year_abs,
+                    'three_year_abs_z': three_year_abs,
+                    'net_long': net_long
+                }
             )
 
     class Meta:
