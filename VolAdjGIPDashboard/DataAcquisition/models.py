@@ -244,11 +244,11 @@ class YahooHistory(SecurityHistory):
         tickers.sort() # make the list deterministic for the same input (used for label later)
 
         current_quad = QuadForecasts.objects.filter(quarter_end_date__lte=date_within_quad).latest('quarter_end_date', 'date')
-        print(f"current_quad quarter={current_quad.quarter_end_date} date={current_quad.date}")
+        #print(f"current_quad quarter={current_quad.quarter_end_date} date={current_quad.date}")
 
         # this is the last known date for the prior quad
         start_date = (date_within_quad - pd.tseries.offsets.QuarterEnd(1) + datetime.timedelta(days=1)).date()
-        print(f"last known date for prior quad: {start_date}")
+        #print(f"last known date for prior quad: {start_date}")
         
         # this is when we started this quad       
         history = cls.objects.filter(ticker__in=tickers, date__gte=start_date, date__lte=date_within_quad).order_by('date')

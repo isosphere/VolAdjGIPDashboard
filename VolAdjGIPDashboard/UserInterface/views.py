@@ -47,6 +47,10 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
         4: ['XLU', 'TLT', 'UUP']
     }
 
+    daily_return = dict()
+    for quad in quad_allocation:
+        daily_return[quad] = YahooHistory.daily_return(quad_allocation[quad])*100
+
     symbol_values = dict()
 
     latest_date = YahooHistory.objects.latest('date').date
@@ -154,6 +158,7 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
     return render(request, 'UserInterface/index.htm', {
         'current_quad_return': current_quad_return,
         'prior_quad_return': prior_quad_return,
+        'daily_return': daily_return,
 
         'quad_allocations': quad_allocations,
         'latest_date': latest_date,
