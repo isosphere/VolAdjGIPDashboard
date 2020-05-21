@@ -131,6 +131,41 @@
                     </div>
                 </div>
             </div>
+
+            <div class="col-sm">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Today</h5>
+                        <p class="card-text">
+                            <table class="table">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>Quad</th>
+                                        <th>Return</th>
+                                    </tr>
+                                </thead>
+                                {% for quad, value in daily_return.items %}
+                                <tr>
+                                    <td>{{quad}}</td>
+                                    {% if value < 0 %}                                        
+                                    <td class="text-danger">
+                                    {% elif value > 0 %}
+                                    <td class="text-success">
+                                    {% endif %}
+                                        {{value|floatformat:1}}%
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                            <ul>
+                                <li>{{latest_date}}</li>
+                            </ul>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
             <div class="row">
                 <div class="col-sm">
                     <div class="card">

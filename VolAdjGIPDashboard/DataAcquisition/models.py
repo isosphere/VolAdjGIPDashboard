@@ -204,15 +204,51 @@ class YahooHistory(SecurityHistory):
 
 
     @classmethod
+    def daily_return(cls, tickers):
+        date_set = cls.objects.order_by('-date').values_list('date', flat=True).distinct()[:2] # latest two dates
+        history = cls.objects.filter(ticker__in=tickers, date__in=date_set).order_by('date')
+        
+        prior_positioning = None
+        prior_cost_basis = dict()
+        start_market_value = 10000
+        market_value = start_market_value
+
+        market_value_history = [start_market_value,]
+        
+        for date in date_set:
+            # liquidate
+            if prior_positioning is not None:
+                for leg in prior_positioning:
+                    market_value += prior_positioning[leg]*(history.get(ticker=leg, date=date).close_price - prior_cost_basis[leg])
+            
+            market_value_history.append(market_value)
+
+            # accumulate
+            new_positioning = cls.equal_volatility_position(tickers, max_date=date, target_value=market_value)
+            
+            prior_cost_basis = dict()
+            prior_positioning = new_positioning.copy()
+
+            for leg in new_positioning:
+                prior_cost_basis[leg] = history.get(ticker=leg, date=date).close_price
+        
+        end_market_value = market_value
+
+        daily_return = end_market_value / start_market_value - 1
+
+        return -daily_return
+
+
+    @classmethod
     def quad_return(cls, tickers, date_within_quad):
         tickers.sort() # make the list deterministic for the same input (used for label later)
 
         current_quad = QuadForecasts.objects.filter(quarter_end_date__lte=date_within_quad).latest('quarter_end_date', 'date')
-        print(f"current_quad quarter={current_quad.quarter_end_date} date={current_quad.date}")
+        #print(f"current_quad quarter={current_quad.quarter_end_date} date={current_quad.date}")
 
         # this is the last known date for the prior quad
         start_date = (date_within_quad - pd.tseries.offsets.QuarterEnd(1) + datetime.timedelta(days=1)).date()
-        print(f"last known date for prior quad: {start_date}")
+        #print(f"last known date for prior quad: {start_date}")
         
         # this is when we started this quad       
         history = cls.objects.filter(ticker__in=tickers, date__gte=start_date, date__lte=date_within_quad).order_by('date')
