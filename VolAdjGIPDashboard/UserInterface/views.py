@@ -49,7 +49,8 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
 
     daily_return = dict()
     for quad in quad_allocation:
-        daily_return[quad] = YahooHistory.daily_return(quad_allocation[quad])*100
+        current_daily_return = YahooHistory.daily_return(quad_allocation[quad])
+        daily_return[quad] = current_daily_return*100 if current_daily_return is not None else None
 
     symbol_values = dict()
 
@@ -61,10 +62,15 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
             if symbol not in all_symbols:
                 all_symbols.append(symbol)
 
+    all_symbols += ['XLV', 'SHY', 'EDV', 'IWM', 'PSP', 'RSP', 'JNK', 'FXB', 'EWG', 'EWA', 'ITB'] # ETF pro
     all_symbols.sort()
 
     for symbol in all_symbols:
-        symbol_data = YahooHistory.objects.get(ticker=symbol, date=latest_date)
+        try:
+            symbol_data = YahooHistory.objects.get(ticker=symbol, date=latest_date)
+        except YahooHistory.DoesNotExist:
+            YahooHistory.update(tickers=all_symbols)
+            symbol_data = YahooHistory.objects.get(ticker=symbol, date=latest_date)
 
         if symbol_data.realized_volatility is None:
             dataframe = YahooHistory.dataframe(tickers=[symbol], lookback=lookback)

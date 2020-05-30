@@ -207,7 +207,7 @@ class YahooHistory(SecurityHistory):
     def daily_return(cls, tickers):
         date_set = cls.objects.order_by('-date').values_list('date', flat=True).distinct()[:2] # latest two dates
         history = cls.objects.filter(ticker__in=tickers, date__in=date_set).order_by('date')
-        
+
         prior_positioning = None
         prior_cost_basis = dict()
         start_market_value = 10000
@@ -219,8 +219,11 @@ class YahooHistory(SecurityHistory):
             # liquidate
             if prior_positioning is not None:
                 for leg in prior_positioning:
-                    market_value += prior_positioning[leg]*(history.get(ticker=leg, date=date).close_price - prior_cost_basis[leg])
-            
+                    try:
+                        market_value += prior_positioning[leg]*(history.get(ticker=leg, date=date).close_price - prior_cost_basis[leg])
+                    except cls.DoesNotExist:
+                        return None
+
             market_value_history.append(market_value)
 
             # accumulate
