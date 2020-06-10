@@ -62,7 +62,7 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
             if symbol not in all_symbols:
                 all_symbols.append(symbol)
 
-    all_symbols += ['XLV', 'SHY', 'EDV', 'IWM', 'PSP', 'RSP', 'JNK', 'FXB', 'EWG', 'EWA', 'ITB'] # ETF pro
+    all_symbols += ['XLV', 'SHY', 'EDV', 'IWM', 'PSP', 'RSP', 'JNK', 'FXB', 'EWG', 'EWA', 'ITB', 'TIP'] # ETF pro
     all_symbols.sort()
 
     for symbol in all_symbols:
