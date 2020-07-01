@@ -2,11 +2,12 @@ import datetime
 
 import numpy as np
 import pandas as pd
-from django.shortcuts import render
 
 from DataAcquisition.models import AlphaVantageHistory, YahooHistory, QuadForecasts, QuadReturn, CommitmentOfTraders
 from django.db.models import F
+from django.conf import settings
 from django.contrib import messages
+from django.shortcuts import render
 
 
 def index(request, default_net_liquidating_value=10000, lookback=28, default_currency='USD'):
@@ -179,5 +180,7 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
         'prior_quad_end': prior_quad_end,
 
         'latest_cot_date': latest_cot_date,
-        'cot_data': cot_data
+        'cot_data': cot_data,
+        'GOOGLE_ID': settings.GOOGLE_ID
+
     })
