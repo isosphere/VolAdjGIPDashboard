@@ -2,11 +2,12 @@ import datetime
 
 import numpy as np
 import pandas as pd
-from django.shortcuts import render
 
 from DataAcquisition.models import AlphaVantageHistory, YahooHistory, QuadForecasts, QuadReturn, CommitmentOfTraders
 from django.db.models import F
+from django.conf import settings
 from django.contrib import messages
+from django.shortcuts import render
 
 
 def index(request, default_net_liquidating_value=10000, lookback=28, default_currency='USD'):
@@ -70,7 +71,15 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
             symbol_data = YahooHistory.objects.get(ticker=symbol, date=latest_date)
         except YahooHistory.DoesNotExist:
             YahooHistory.update(tickers=all_symbols)
-            symbol_data = YahooHistory.objects.get(ticker=symbol, date=latest_date)
+            try:
+                symbol_data = YahooHistory.objects.get(ticker=symbol, date=latest_date)
+            except YahooHistory.DoesNotExist:
+                symbol_values[symbol] = (
+                    'N/A',
+                    '--.--',
+                    '--.--'
+                )
+                continue
 
         if symbol_data.realized_volatility is None:
             dataframe = YahooHistory.dataframe(tickers=[symbol], lookback=lookback)
@@ -81,7 +90,7 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
             latest_close, realized_vol = dataframe.iloc[-1].close_price, dataframe.iloc[-1].realized_vol          
             symbol_data.realized_volatility = realized_vol
             symbol_data.save()
-
+ 
         symbol_values[symbol] = (
             round(symbol_data.close_price, 2), 
             round(100*symbol_data.realized_volatility, 2), 
@@ -179,5 +188,7 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
         'prior_quad_end': prior_quad_end,
 
         'latest_cot_date': latest_cot_date,
-        'cot_data': cot_data
+        'cot_data': cot_data,
+        'GOOGLE_ID': settings.GOOGLE_ID
+
     })
