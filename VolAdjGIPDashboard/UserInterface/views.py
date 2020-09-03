@@ -77,6 +77,7 @@ def index(request, default_net_liquidating_value=10000, lookback=12, default_cur
                     'N/A',
                     '--.--',
                     '--.--',
+                    '--.--',
                     '--.--'
                 )
                 continue
@@ -88,16 +89,22 @@ def index(request, default_net_liquidating_value=10000, lookback=12, default_cur
 
             symbol_data.realized_volatility = dataframe.iloc[-1].realized_vol 
             symbol_data.save()
- 
+
+        prior_week_ref = YahooHistory.objects.filter(ticker=symbol).latest('date').date - datetime.timedelta(weeks=1)
+        prior_week = prior_week_ref.isocalendar()[1]
+        last_week_val = YahooHistory.objects.filter(ticker=symbol, date__week=prior_week).latest('date').close_price
+
         symbol_values[symbol] = (
             round(symbol_data.close_price, 2), 
             round(100*symbol_data.realized_volatility, 2), 
-            round(symbol_data.close_price * ( 1 - symbol_data.realized_volatility), 2),
-            round(symbol_data.close_price * ( 1 + symbol_data.realized_volatility), 2)
+            round(last_week_val * ( 1 - symbol_data.realized_volatility), 2),
+            round(last_week_val * ( 1 + symbol_data.realized_volatility), 2),
+            int(round(100*(symbol_data.close_price - last_week_val*(1 - symbol_data.realized_volatility)) / ( last_week_val * ( 1 + symbol_data.realized_volatility) - last_week_val * ( 1 - symbol_data.realized_volatility)), 0))
         )
 
     symbol_values["USDCAD"] = (
         latest_rate,
+        "--.--",
         "--.--",
         "--.--",
         "--.--"
