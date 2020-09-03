@@ -9,8 +9,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.shortcuts import render
 
-
-def index(request, default_net_liquidating_value=10000, lookback=28, default_currency='USD'):
+def index(request, default_net_liquidating_value=10000, lookback=12, default_currency='USD'):
     # Commitment of Traders
     latest_cot_date = CommitmentOfTraders.objects.latest('date').date
     cot_data = CommitmentOfTraders.objects.filter(date=latest_cot_date).order_by('symbol')
@@ -63,7 +62,7 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
             if symbol not in all_symbols:
                 all_symbols.append(symbol)
 
-    all_symbols += ['XLV', 'SHY', 'EDV', 'IWM', 'PSP', 'RSP', 'JNK', 'FXB', 'EWG', 'EWA', 'ITB', 'TIP'] # ETF pro
+    all_symbols += ['XLV', 'SHY', 'EDV', 'IWM', 'PSP', 'RSP', 'JNK', 'FXB', 'EWG', 'EWA', 'ITB', 'TIP', 'VTI', 'BND']
     all_symbols.sort()
 
     for symbol in all_symbols:
@@ -77,27 +76,29 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
                 symbol_values[symbol] = (
                     'N/A',
                     '--.--',
+                    '--.--',
                     '--.--'
                 )
                 continue
 
         if symbol_data.realized_volatility is None:
-            dataframe = YahooHistory.dataframe(tickers=[symbol], lookback=lookback)
-            dataframe["log_return"] = dataframe.groupby(level='ticker').close_price.apply(np.log) - dataframe.groupby(level='ticker').close_price.shift(1).apply(np.log)
-            dataframe["realized_vol"] = dataframe.groupby(level='ticker').log_return.rolling(lookback).std(ddof=0).droplevel(0)
-            dataframe = dataframe.droplevel("ticker")
+            dataframe = YahooHistory.dataframe(tickers=[symbol], lookback=lookback*5+1).droplevel("ticker").resample('W').last()
+            dataframe["log_return"] = dataframe.close_price.apply(np.log) - dataframe.close_price.shift(1).apply(np.log)
+            dataframe["realized_vol"] = dataframe.log_return.rolling(lookback).std(ddof=0)
 
-            latest_close, realized_vol = dataframe.iloc[-1].close_price, dataframe.iloc[-1].realized_vol          
-            symbol_data.realized_volatility = realized_vol
+            symbol_data.realized_volatility = dataframe.iloc[-1].realized_vol 
             symbol_data.save()
  
         symbol_values[symbol] = (
             round(symbol_data.close_price, 2), 
             round(100*symbol_data.realized_volatility, 2), 
-            round(symbol_data.close_price*symbol_data.realized_volatility, 2)
+            round(symbol_data.close_price * ( 1 - symbol_data.realized_volatility), 2),
+            round(symbol_data.close_price * ( 1 + symbol_data.realized_volatility), 2)
         )
+
     symbol_values["USDCAD"] = (
         latest_rate,
+        "--.--",
         "--.--",
         "--.--"
     )
@@ -139,9 +140,7 @@ def index(request, default_net_liquidating_value=10000, lookback=28, default_cur
                     date_within_quad=prior_quad_end_date
                 ))
 
-                prior_quad_return[quad].append(round(
-                    prior_quad_return[quad][0]/prior_quad_return[quad][1],
-                ndigits=1))                
+                prior_quad_return[quad].append(round(prior_quad_return[quad][0]/prior_quad_return[quad][1], ndigits=1))                
 
                 prior_quad_return[quad][0] = round(prior_quad_return[quad][0]*100, ndigits=1)
                 prior_quad_return[quad][1] = round(prior_quad_return[quad][1]*100, ndigits=1)

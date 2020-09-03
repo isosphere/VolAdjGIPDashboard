@@ -239,14 +239,19 @@
                                     <thead class="thead-dark">
                                         <tr>
                                             <th>Symbol</th>
+                                            <th>1-σ Week Buy</th>
                                             <th>Price</th>
-                                            <th data-toggle="tooltip" data-placement="top" title="(over {{lookback}} trading days)">Realized Daily Volatility</th>
-                                            <th>1-σ Move</th>
+                                            <th>1-σ Week Sell</th>
+                                            <th data-toggle="tooltip" data-placement="top" title="(over {{lookback}} trading days)">Realized 1-Week Volatility</th>
                                         </tr>
                                     </thead>
                                     {% for symbol, value in symbol_values.items %}
                                     <tr>                                
-                                        <td>{{symbol}}</td><td>${{value.0}}</td>
+                                        <td>{{symbol}}</td>
+                                        <td>${{value.2}}</td>
+                                        <td>${{value.0}}</td>
+                                        <td>${{value.3}}</td>
+
                                         {% if value.1 < 1.3 %}
                                         <td class="alert-success">{{value.1}}%</td>
                                         {% elif value.1 <= 1.8 %}
@@ -256,7 +261,6 @@
                                         {% else %}
                                         <td>{{value.1}}%</td>
                                         {% endif %}
-                                        <td>${{value.2}}</td>
                                     </tr>
                                     {% endfor %}
                                 </table>

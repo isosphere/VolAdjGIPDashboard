@@ -63,6 +63,9 @@ class SecurityHistory(models.Model):
 
         return dataframe
 
+    def __str__(self):
+        return f"{self.ticker} on {self.date} was {self.close_price}"
+
     class Meta:
         abstract = True
 
@@ -143,6 +146,7 @@ class YahooHistory(SecurityHistory):
                 obj, created = cls.objects.get_or_create(date=date, ticker=security, defaults={'close_price':close_price, 'updated': datetime.datetime.now()})
                 obj.close_price = close_price
                 obj.realized_volatility = None # we'll calculate this later
+                obj.realized_volatility_week = None
                 obj.updated = datetime.datetime.now()
                 obj.save()
 
@@ -320,6 +324,9 @@ class YahooHistory(SecurityHistory):
         cached_return.save()
         
         return quad_return, quad_stdev
+
+    def __str__(self):
+        return f"{self.ticker} on {self.date} was {self.close_price} with 1-week vol {self.realized_volatility}"
 
     class Meta:
         unique_together = [['ticker', 'date']]
