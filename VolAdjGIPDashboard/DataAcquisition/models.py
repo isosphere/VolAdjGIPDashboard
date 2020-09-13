@@ -127,7 +127,7 @@ class YahooHistory(SecurityHistory):
             ]
 
             if not result.empty:
-                cls.objects.get(ticker=ticker, date=date).update(realized_volatility=result.values[0])
+                cls.objects.filter(ticker=ticker, date=date).update(realized_volatility=result.values[0])
 
 
     @classmethod
