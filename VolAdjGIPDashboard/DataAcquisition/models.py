@@ -104,6 +104,27 @@ class YahooHistory(SecurityHistory):
     realized_volatility = models.FloatField(null=True) 
 
     @classmethod
+    def calculate_stats(cls, lookback=12):
+        logger = logging.getLogger('YahooHistory.calculate_stats')
+        
+        missing_sections = set(cls.objects.filter(realized_volatility__isnull=True).values_list('date', 'ticker').distinct())
+        
+        # calculate all
+        all_data = cls.dataframe().groupby([
+            pd.Grouper(level='ticker'),
+            pd.Grouper(level='date', freq='W')
+        ]).last().apply(np.log)
+
+        all_data['prior'] = all_data.groupby('ticker').close_price.shift(1)
+        all_data = (all_data.close_price - all_data.prior).groupby('ticker').rolling(lookback).std(ddof=0).droplevel(0).dropna()
+
+        for index, value in all_data.items():
+            ticker, timestamp = index
+            if timestamp.date(), ticker in missing_sections:
+                cls.objects.get(ticker=ticker, date=timestamp.date()).update(realized_volatility=value)
+
+
+    @classmethod
     def update(cls, tickers=None, clobber=False, start=None, end=None):
         logger = logging.getLogger('YahooHistory.update')
 

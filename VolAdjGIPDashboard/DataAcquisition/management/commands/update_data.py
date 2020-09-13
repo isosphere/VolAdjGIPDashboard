@@ -7,5 +7,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         CPIForecast.update()
         YahooHistory.update()
+        YahooHistory.calculate_stats()
         AlphaVantageHistory.update()
         QuadForecasts.update()

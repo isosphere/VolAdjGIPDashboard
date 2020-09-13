@@ -82,14 +82,6 @@ def index(request, default_net_liquidating_value=10000, lookback=12, default_cur
                 )
                 continue
 
-        if symbol_data.realized_volatility is None:
-            dataframe = YahooHistory.dataframe(tickers=[symbol], lookback=lookback*5+1).droplevel("ticker").resample('W').last()
-            dataframe["log_return"] = dataframe.close_price.apply(np.log) - dataframe.close_price.shift(1).apply(np.log)
-            dataframe["realized_vol"] = dataframe.log_return.rolling(lookback).std(ddof=0)
-
-            symbol_data.realized_volatility = dataframe.iloc[-1].realized_vol 
-            symbol_data.save()
-
         prior_week_ref = YahooHistory.objects.filter(ticker=symbol).latest('date').date - datetime.timedelta(weeks=1)
         prior_week = prior_week_ref.isocalendar()[1]
         last_week = YahooHistory.objects.filter(ticker=symbol, date__week=prior_week).latest('date')
