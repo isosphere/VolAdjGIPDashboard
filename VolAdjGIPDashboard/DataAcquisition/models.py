@@ -119,7 +119,7 @@ class YahooHistory(SecurityHistory):
         all_data = (all_data.close_price - all_data.prior).groupby('ticker').rolling(lookback).std(ddof=0).droplevel(0).dropna()
 
         for date, ticker in missing_sections:
-            weekending = (date + pd.offsets.Week()).date()
+            weekending = (date + pd.offsets.Week(weekday=6)).date()
 
             result = all_data.loc[
                 (all_data.index.get_level_values('date') == "%s" % weekending) &
