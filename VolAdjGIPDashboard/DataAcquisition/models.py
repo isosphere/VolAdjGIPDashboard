@@ -118,10 +118,16 @@ class YahooHistory(SecurityHistory):
         all_data['prior'] = all_data.groupby('ticker').close_price.shift(1)
         all_data = (all_data.close_price - all_data.prior).groupby('ticker').rolling(lookback).std(ddof=0).droplevel(0).dropna()
 
-        for index, value in all_data.items():
-            ticker, timestamp = index
-            if timestamp.date(), ticker in missing_sections:
-                cls.objects.get(ticker=ticker, date=timestamp.date()).update(realized_volatility=value)
+        for date, ticker in missing_sections:
+            weekending = (date + pd.offsets.Week()).date()
+
+            result = all_data.loc[
+                (all_data.index.get_level_values('date') == "%s" % weekending) &
+                (all_data.index.get_level_values('ticker') == ticker)
+            ]
+
+            if not result.empty:
+                cls.objects.get(ticker=ticker, date=date).update(realized_volatility=result.values[0])
 
 
     @classmethod
