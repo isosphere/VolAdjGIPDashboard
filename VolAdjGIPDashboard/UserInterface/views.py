@@ -92,14 +92,18 @@ def index(request, default_net_liquidating_value=10000, lookback=12, default_cur
 
         prior_week_ref = YahooHistory.objects.filter(ticker=symbol).latest('date').date - datetime.timedelta(weeks=1)
         prior_week = prior_week_ref.isocalendar()[1]
-        last_week_val = YahooHistory.objects.filter(ticker=symbol, date__week=prior_week).latest('date').close_price
+        last_week = YahooHistory.objects.filter(ticker=symbol, date__week=prior_week).latest('date')
+        last_week_date, last_week_val = last_week.date, last_week.close_price
+
+        # get realized vol as of last week - don't let the buy/sell targets move with current vol
+        last_week_vol = YahooHistory.objects.get(ticker=symbol, date=last_week_date).realized_volatility
 
         symbol_values[symbol] = (
             round(symbol_data.close_price, 2), 
             round(100*symbol_data.realized_volatility, 2), 
-            round(last_week_val * ( 1 - symbol_data.realized_volatility), 2),
-            round(last_week_val * ( 1 + symbol_data.realized_volatility), 2),
-            int(round(100*(symbol_data.close_price - last_week_val*(1 - symbol_data.realized_volatility)) / ( last_week_val * ( 1 + symbol_data.realized_volatility) - last_week_val * ( 1 - symbol_data.realized_volatility)), 0))
+            round(last_week_val * ( 1 - last_week_vol), 2),
+            round(last_week_val * ( 1 + last_week_vol), 2),
+            int(round(100*(symbol_data.close_price - last_week_val*(1 - last_week_vol)) / ( last_week_val * ( 1 + last_week_vol) - last_week_val * ( 1 - last_week_vol)), 0))
         )
 
     symbol_values["USDCAD"] = (
