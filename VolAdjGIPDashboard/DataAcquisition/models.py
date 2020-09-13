@@ -120,7 +120,9 @@ class YahooHistory(SecurityHistory):
 
         for index, value in all_data.items():
             ticker, timestamp = index
-            if timestamp.date(), ticker in missing_sections:
+            timestamp = timestamp.date()
+
+            if (timestamp, ticker) in missing_sections:
                 cls.objects.get(ticker=ticker, date=timestamp.date()).update(realized_volatility=value)
 
 
