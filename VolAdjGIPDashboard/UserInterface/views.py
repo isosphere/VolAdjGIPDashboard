@@ -90,13 +90,22 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         # get realized vol as of last week - don't let the buy/sell targets move with current vol
         last_week_vol = YahooHistory.objects.get(ticker=symbol, date=last_week_date).realized_volatility
 
-        symbol_values[symbol] = (
-            round(symbol_data.close_price, 2), 
-            round(100*last_week_vol, 2), 
-            round(last_week_val * ( 1 - last_week_vol), 2),
-            round(last_week_val * ( 1 + last_week_vol), 2),
-            int(round(100*(symbol_data.close_price - last_week_val*(1 - last_week_vol)) / ( last_week_val * ( 1 + last_week_vol) - last_week_val * ( 1 - last_week_vol)), 0))
-        )
+        if last_week_vol is not None:
+            symbol_values[symbol] = (
+                round(symbol_data.close_price, 2), 
+                round(100*last_week_vol, 2), 
+                round(last_week_val * ( 1 - last_week_vol), 2),
+                round(last_week_val * ( 1 + last_week_vol), 2),
+                int(round(100*(symbol_data.close_price - last_week_val*(1 - last_week_vol)) / ( last_week_val * ( 1 + last_week_vol) - last_week_val * ( 1 - last_week_vol)), 0))
+            )
+        else:
+            symbol_values[symbol] = (
+                round(symbol_data.close_price, 2), 
+                '--.--', 
+                '--.--',
+                '--.--',
+                '--.--'
+            )            
 
     symbol_values["USDCAD"] = (
         latest_rate,
