@@ -104,7 +104,7 @@ class YahooHistory(SecurityHistory):
     realized_volatility = models.FloatField(null=True) 
 
     @classmethod
-    def calculate_stats(cls, lookback=12):
+    def calculate_stats(cls, lookback=52):
         logger = logging.getLogger('YahooHistory.calculate_stats')
         
         missing_sections = set(cls.objects.filter(realized_volatility__isnull=True).values_list('date', 'ticker').distinct())

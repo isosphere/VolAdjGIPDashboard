@@ -9,7 +9,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.shortcuts import render
 
-def index(request, default_net_liquidating_value=10000, lookback=12, default_currency='USD'):
+def index(request, default_net_liquidating_value=10000, lookback=52, default_currency='USD'):
     # Commitment of Traders
     latest_cot_date = CommitmentOfTraders.objects.latest('date').date
     cot_data = CommitmentOfTraders.objects.filter(date=latest_cot_date).order_by('symbol')
