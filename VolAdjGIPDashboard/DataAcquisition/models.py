@@ -177,6 +177,9 @@ class YahooHistory(SecurityHistory):
     def update(cls, tickers=None, clobber=False, start=None, end=None):
         logger = logging.getLogger('YahooHistory.update')
 
+        if isinstance(tickers, str):
+            tickers = [tickers]
+
         end = end if end is not None else datetime.datetime.now()
         logger.info(f"Final date of interest for update: {end}")
         if start is None and not clobber:
