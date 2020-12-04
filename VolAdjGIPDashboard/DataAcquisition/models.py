@@ -8,6 +8,7 @@ import requests
 from dateutil.parser import parse
 
 from django.db import models
+from django.db.utils import IntegrityError
 from django.conf import settings
 import pandas_datareader.data as web
 import quandl
@@ -25,6 +26,48 @@ class QuadReturn(models.Model):
 
     quad_return = models.FloatField()
     quad_stdev = models.FloatField()
+
+    @classmethod
+    def update(cls):
+        quad_allocation = {
+            1: ['QQQ',],
+            2: ['XLF', 'XLI', 'QQQ'],
+            3: ['GLD',],
+            4: ['XLU', 'TLT', 'UUP']
+        }
+
+        latest_date = YahooHistory.objects.latest('date').date
+
+        for quad in quad_allocation:
+            try_date = YahooHistory.objects.earliest('date').date
+            print(f"Calculating quad returns since {try_date} for quad {quad}")
+
+            while try_date <= latest_date:
+                print(f"Quad={quad} date = {try_date} ... ", end='')
+                try:
+                    YahooHistory.quad_return(
+                        tickers=quad_allocation[quad],
+                        date_within_quad=try_date
+                    )
+                    print("Ok.")
+
+                    try_date += datetime.timedelta(days=1)
+
+                except YahooHistory.DoesNotExist:
+                    print("No YahooHistory instance for that date.")
+                    try_date += datetime.timedelta(days=1)
+
+                except QuadForecasts.DoesNotExist:
+                    print("No QuadForecast instance for that date.")
+                    try_date += datetime.timedelta(days=1)
+                
+                except IntegrityError:
+                    print("IntegrityError saving calculated return.")
+                    try_date += datetime.timedelta(days=1)
+
+                except ValueError:
+                    print("Insufficient data for calculation.")
+                    try_date += datetime.timedelta(days=1)
 
     class Meta:
         unique_together = [['quarter_end_date', 'data_start_date', 'data_end_date', 'label']]
