@@ -476,7 +476,7 @@ class QuadForecasts(models.Model):
         '''
 
         if start_date is None:        
-            start_date = datetime.date(2008, 1, 1)
+            start_date = datetime.date(1950, 1, 1)
 
         # Real GDP, seasonally adjusted. Quarterly.
         gdp_data = web.DataReader('GDPC1', 'fred', start = start_date)['GDPC1']
@@ -622,8 +622,7 @@ class QuadForecasts(models.Model):
 
         usa_quads = usa_quads[
             (usa_quads.index.get_level_values('date') <= usa_quads.index.get_level_values('quarter')) &
-            #(usa_quads.index.get_level_values('date') > usa_quads.index.get_level_values('quarter') - pd.offsets.QuarterEnd()) &
-            (usa_quads.index.get_level_values('date') > max_date - datetime.timedelta(days=365))
+            (usa_quads.index.get_level_values('date') > usa_quads.index.get_level_values('quarter') - pd.offsets.QuarterEnd())
         ]
 
         for row in usa_quads.itertuples():
