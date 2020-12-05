@@ -574,7 +574,7 @@ class QuadForecasts(models.Model):
         dataframe.drop('growth', inplace=True, axis='columns')
 
         # Collect required GDP numbers
-        shifted_gdp = pd.DataFrame({'quarter': actual_gdp.index + 4*pd.offsets.QuarterEnd(n=0), 'past_gdp': actual_gdp}) # final numbers
+        shifted_gdp = pd.DataFrame({'quarter': actual_gdp.index + 4*pd.offsets.QuarterEnd(n=1), 'past_gdp': actual_gdp}) # final numbers
         shifted_gdp.set_index('quarter', inplace=True)
         dataframe = dataframe.join(shifted_gdp, on='quarter')
 
@@ -583,7 +583,7 @@ class QuadForecasts(models.Model):
         cpi_df.set_index('quarter', inplace=True)
         dataframe = dataframe.join(cpi_df, on='quarter')
 
-        shifted_cpi = pd.DataFrame({'quarter': actual_cpi.index + 4*pd.offsets.QuarterEnd(n=0), 'past_cpi': actual_cpi}) # final numbers
+        shifted_cpi = pd.DataFrame({'quarter': actual_cpi.index + 4*pd.offsets.QuarterEnd(n=1), 'past_cpi': actual_cpi}) # final numbers
         shifted_cpi.set_index('quarter', inplace=True)
         dataframe = dataframe.join(shifted_cpi, on='quarter')
 
@@ -593,7 +593,7 @@ class QuadForecasts(models.Model):
             'past_gdp_yoy': actual_gdp,
         }).pct_change(4)
         merged_data.index.names = ['quarter']
-        merged_data.index += pd.offsets.QuarterEnd(n=0) # push forward one quarter
+        merged_data.index += pd.offsets.QuarterEnd(n=1) # push forward one quarter
 
         dataframe = dataframe.join(merged_data, on='quarter')
 
