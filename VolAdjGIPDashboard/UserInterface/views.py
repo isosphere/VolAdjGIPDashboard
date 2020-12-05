@@ -17,7 +17,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     # For our little 4-quad chart
     current_date = datetime.date.today()
     quarter_int = (current_date.month - 1) // 3 + 1 
-    quarter_date = datetime.date(current_date.year, 1, 1) + pd.offsets.QuarterEnd(n=0)*quarter_int
+    quarter_date = datetime.date(current_date.year, 1, 1) + pd.offsets.QuarterEnd(n=1)*quarter_int
 
     quad_guesses = QuadForecasts.objects.filter(quarter_end_date=quarter_date).order_by('-date')[:3].values_list('date', 'gdp_roc', 'cpi_roc')
 
