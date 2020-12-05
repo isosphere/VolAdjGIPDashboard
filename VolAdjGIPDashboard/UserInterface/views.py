@@ -17,7 +17,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     # For our little 4-quad chart
     current_date = datetime.date.today()
     quarter_int = (current_date.month - 1) // 3 + 1 
-    quarter_date = datetime.date(current_date.year, 1, 1) + pd.offsets.QuarterEnd()*quarter_int
+    quarter_date = datetime.date(current_date.year, 1, 1) + pd.offsets.QuarterEnd(n=0)*quarter_int
 
     quad_guesses = QuadForecasts.objects.filter(quarter_end_date=quarter_date).order_by('-date')[:3].values_list('date', 'gdp_roc', 'cpi_roc')
 
@@ -126,8 +126,8 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     prior_quad_return = dict()
     
     data_updated = YahooHistory.objects.latest('updated').updated
-    prior_quad_end_date = (quarter_end_date - pd.tseries.offsets.QuarterEnd(1)).date()
-    prior_quad_start = (quarter_end_date - pd.tseries.offsets.QuarterEnd(2) + datetime.timedelta(days=1)).date()
+    prior_quad_end_date = (quarter_end_date - pd.tseries.offsets.QuarterEnd(n=0)).date()
+    prior_quad_start = (quarter_end_date - pd.tseries.offsets.QuarterEnd(n=0) + datetime.timedelta(days=1)).date()
 
     for quad in quad_allocation:
         try_date = datetime.date.today()
@@ -201,5 +201,4 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         'latest_cot_date': latest_cot_date,
         'cot_data': cot_data,
         'GOOGLE_ID': settings.GOOGLE_ID
-
     })
