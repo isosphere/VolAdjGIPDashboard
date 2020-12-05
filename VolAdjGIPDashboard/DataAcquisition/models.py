@@ -28,7 +28,7 @@ class QuadReturn(models.Model):
     quad_stdev = models.FloatField()
 
     @classmethod
-    def update(cls):
+    def update(cls, first_date=None):
         quad_allocation = {
             1: ['QQQ',],
             2: ['XLF', 'XLI', 'QQQ'],
@@ -37,9 +37,10 @@ class QuadReturn(models.Model):
         }
 
         latest_date = YahooHistory.objects.latest('date').date
+        first_date = first_date if first_date is not None else YahooHistory.objects.earliest('date').date
 
         for quad in quad_allocation:
-            try_date = YahooHistory.objects.earliest('date').date
+            try_date = first_date
             print(f"Calculating quad returns since {try_date} for quad {quad}")
 
             while try_date <= latest_date:
