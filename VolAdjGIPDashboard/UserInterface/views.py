@@ -126,8 +126,8 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     prior_quad_return = dict()
     
     data_updated = YahooHistory.objects.latest('updated').updated
-    prior_quad_end_date = (quarter_end_date - pd.tseries.offsets.QuarterEnd(n=0)).date()
-    prior_quad_start = (quarter_end_date - pd.tseries.offsets.QuarterEnd(n=0) + datetime.timedelta(days=1)).date()
+    prior_quad_end_date = (quarter_end_date - pd.tseries.offsets.QuarterEnd(n=1)).date()
+    prior_quad_start = (prior_quad_end_date - pd.tseries.offsets.QuarterEnd(n=1) + datetime.timedelta(days=1)).date()
 
     for quad in quad_allocation:
         try_date = datetime.date.today()
