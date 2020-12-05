@@ -627,7 +627,7 @@ class QuadForecasts(models.Model):
 
         usa_quads = usa_quads[
             (usa_quads.index.get_level_values('date') <= usa_quads.index.get_level_values('quarter')) &
-            (usa_quads.index.get_level_values('date') > usa_quads.index.get_level_values('quarter') - pd.offsets.QuarterEnd(n=0))
+            (usa_quads.index.get_level_values('date') > usa_quads.index.get_level_values('quarter') - pd.offsets.QuarterEnd(n=1))
         ]
 
         for row in usa_quads.itertuples():
