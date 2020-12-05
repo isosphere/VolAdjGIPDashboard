@@ -104,7 +104,7 @@
                                         <td>{{quad}}</td>
                                         {% for percent in value %}
                                         {% if forloop.first or forloop.last %}
-                                            {% if percent < 0 %}                                        
+                                            {% if percent < 0 %}
                                         <td class="text-danger">
                                             {% elif percent > 0 %}
                                         <td class="text-success">
@@ -145,7 +145,7 @@
                                     {% for quad, value in daily_return.items %}
                                     <tr>
                                         <td>{{quad}}</td>
-                                        {% if value < 0 %}                                        
+                                        {% if value < 0 %}
                                         <td class="text-danger">
                                         {% elif value > 0 %}
                                         <td class="text-success">
@@ -171,7 +171,51 @@
                             </p>
                         </div>
                     </div>
-                </div>            
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Quad 1 Allocation Performance This Quarter</h5>
+                            <p class="card-text">
+                                <canvas id="quad_performance_1"></canvas>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Quad 2 Allocation Performance This Quarter</h5>
+                            <p class="card-text">
+                                <canvas id="quad_performance_2"></canvas>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Quad 3 Allocation Performance This Quarter</h5>
+                            <p class="card-text">
+                                <canvas id="quad_performance_3"></canvas>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Quad 4 Allocation Performance This Quarter</h5>
+                            <p class="card-text">
+                                <canvas id="quad_performance_4"></canvas>
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
             <div class="row">
@@ -222,7 +266,7 @@
                                             {% else %}
                                             <td>
                                             {% endif %}
-                                            {{cot_value.three_year_abs_z|floatformat:2}}</td>                                            
+                                            {{cot_value.three_year_abs_z|floatformat:2}}</td>
                                         </tr>
                                         {% endfor %}
                                     </thead>
@@ -248,7 +292,7 @@
                                         </tr>
                                     </thead>
                                     {% for symbol, value in symbol_values.items %}
-                                    <tr>                                
+                                    <tr>
                                         <td>{{symbol}}</td>
                                         <td>{{value.4}}</td>
                                         <td>${{value.2}}</td>
@@ -301,7 +345,7 @@
                                 <td>{{security}}</td><td>{{value}}</td>
                             </tr>
                             {% endfor %}
-                        </table>    
+                        </table>
                     </div>
                 </div>
             </div> 
@@ -317,82 +361,165 @@
         </script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.0/dist/Chart.min.js"></script>
         <script>
-        var ctx = document.getElementById('quad_updates').getContext('2d');
-        var scatterChart = new Chart(ctx, {
-            type: 'scatter',
-            data: {
-                datasets: [
-                {% for date, gdp_roc, cpi_roc in roc_data %}
-                    {
-                        label: "{{date}}",
-                        
-                        data: [
-                            {
-                                x: {{cpi_roc|floatformat}},
-                                y: {{gdp_roc|floatformat}}
-                            },
-                        ],
-                        {% if forloop.first %}
-                        pointBackgroundColor: ['#00ff00'],
-                        {% elif forloop.last %}
-                        pointBackgroundColor: ['#0000ff'],
-                        {% else %}
-                        pointBackgroundColor: ['#00cbff'],
-                        {% endif %}
-                        {% if forloop.first %}
-                        backgroundColor: '#00ff00'
-                        {% elif forloop.last %}
-                        backgroundColor: '#0000ff'
-                        {% else %}
-                        backgroundColor: '#00cbff'
-                        {% endif %}
-                    },
-                {% endfor %}
-                ]
-            },
-            options: {
-                scales: {
-                    xAxes: [{
-                        type: 'linear',
-                        position: 'bottom',
-                        scaleLabel: {
-                            labelString: "Inflation Velocity (bps)",
-                            display: true
+            var ctx_quad = document.getElementById('quad_updates').getContext('2d');
+            var scatterChart = new Chart(ctx_quad, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                    {% for date, gdp_roc, cpi_roc in roc_data %}
+                        {
+                            label: "{{date}}",
+                            
+                            data: [
+                                {
+                                    x: {{cpi_roc|floatformat}},
+                                    y: {{gdp_roc|floatformat}}
+                                },
+                            ],
+                            {% if forloop.first %}
+                            pointBackgroundColor: ['#00ff00'],
+                            {% elif forloop.last %}
+                            pointBackgroundColor: ['#0000ff'],
+                            {% else %}
+                            pointBackgroundColor: ['#00cbff'],
+                            {% endif %}
+                            {% if forloop.first %}
+                            backgroundColor: '#00ff00'
+                            {% elif forloop.last %}
+                            backgroundColor: '#0000ff'
+                            {% else %}
+                            backgroundColor: '#00cbff'
+                            {% endif %}
                         },
-                        ticks: {
-                            suggestedMax: 50.0,
-                            suggestedMin: -50.0,
-                            stepSize: 20.0,
-                        }
-                    }],
-                    yAxes: [{
-                        type: 'linear',
-                        scaleLabel: {
-                            labelString: "Growth Velocity (bps)",
-                            display: true
-                        },
-                        ticks: {
-                            suggestedMax: 50.0,
-                            suggestedMin: -50.0,
-                            stepSize: 20.0,
-                        }
-                    }]
+                    {% endfor %}
+                    ]
                 },
-                legend: {
-                    display: true,
-                    position: 'right'
+                options: {
+                    scales: {
+                        xAxes: [{
+                            type: 'linear',
+                            position: 'bottom',
+                            scaleLabel: {
+                                labelString: "Inflation Velocity (bps)",
+                                display: true
+                            },
+                            ticks: {
+                                suggestedMax: 50.0,
+                                suggestedMin: -50.0,
+                                stepSize: 20.0,
+                            }
+                        }],
+                        yAxes: [{
+                            type: 'linear',
+                            scaleLabel: {
+                                labelString: "Growth Velocity (bps)",
+                                display: true
+                            },
+                            ticks: {
+                                suggestedMax: 50.0,
+                                suggestedMin: -50.0,
+                                stepSize: 20.0,
+                            }
+                        }]
+                    },
+                    legend: {
+                        display: true,
+                        position: 'right'
+                    }
                 }
-            }
-        });
+            });
+        </script>
+        <script>
+            {% for quad in quad_performance %}
+            var ctx_score = document.getElementById('quad_performance_{{quad}}').getContext('2d');
+            var scatterChart = new Chart(ctx_score, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: "score",
+                            data: [
+                                {% if quad == 1 %}
+                                {% for datum in quad_performance.1 %}
+                                {
+                                    x: {{datum.0}},
+                                    y: {{datum.1}}
+                                },
+                                {% endfor %}
+                                {% endif %}
+                                {% if quad == 2 %}
+                                {% for datum in quad_performance.2 %}
+                                {
+                                    x: {{datum.0}},
+                                    y: {{datum.1}}
+                                },
+                                {% endfor %}
+                                {% endif %}
+                                {% if quad == 3 %}
+                                {% for datum in quad_performance.3 %}
+                                {
+                                    x: {{datum.0}},
+                                    y: {{datum.1}}
+                                },
+                                {% endfor %}
+                                {% endif %}
+                                {% if quad == 4 %}
+                                {% for datum in quad_performance.4 %}
+                                {
+                                    x: {{datum.0}},
+                                    y: {{datum.1}}
+                                },
+                                {% endfor %}
+                                {% endif %}
+                            ],
+                            pointBackgroundColor: ['#00ff00'],
+                            backgroundColor: '#00ff00'
+                        },
+                    ]
+                },
+                options: {
+                    scales: {
+                        xAxes: [{
+                            type: 'linear',
+                            position: 'bottom',
+                            scaleLabel: {
+                                labelString: "Quarter Depth",
+                                display: true
+                            },
+                            ticks: {
+                                suggestedMax: 90.0,
+                                suggestedMin: 0.0,
+                                stepSize: 5.0,
+                            }
+                        }],
+                        yAxes: [{
+                            type: 'linear',
+                            scaleLabel: {
+                                labelString: "Ratio",
+                                display: true
+                            },
+                            ticks: {
+                                suggestedMax: 20.0,
+                                suggestedMin: -20.0,
+                                stepSize: 5.0,
+                            }
+                        }]
+                    },
+                    legend: {
+                        display: false,
+                    }
+                }
+            });
+            {% endfor %}
         </script>
         <!-- Global site tag (gtag.js) - Google Analytics -->
         <script async src="https://www.googletagmanager.com/gtag/js?id={{GOOGLE_ID}}"></script>
         <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
 
-        gtag('config', '{{GOOGLE_ID}}');
+            gtag('config', '{{GOOGLE_ID}}');
         </script>
     </body>
 </html>
