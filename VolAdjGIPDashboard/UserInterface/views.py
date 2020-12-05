@@ -119,7 +119,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     quad_allocations = dict()
 
     # Quad Return Calculation
-    current_quad_forecast = QuadForecasts.objects.filter(quarter_end_date__lte=latest_date).latest('quarter_end_date', 'date')
+    current_quad_forecast = QuadForecasts.objects.filter(quarter_end_date=latest_date + pd.tseries.offsets.QuarterEnd(n=0)).latest('date')
     current_quad, quarter_end_date = current_quad_forecast.quad, current_quad_forecast.quarter_end_date
 
     current_quad_return = dict()
@@ -128,6 +128,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     data_updated = YahooHistory.objects.latest('updated').updated
     prior_quad_end_date = (quarter_end_date - pd.tseries.offsets.QuarterEnd(n=1)).date()
     prior_quad_start = (prior_quad_end_date - pd.tseries.offsets.QuarterEnd(n=1) + datetime.timedelta(days=1)).date()
+    current_quad_start = prior_quad_end_date + datetime.timedelta(days=1)
 
     for quad in quad_allocation:
         try_date = datetime.date.today()
@@ -170,8 +171,6 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
                 break
 
         quad_allocations[quad] = YahooHistory.equal_volatility_position(quad_allocation[quad], target_value=net_liquidating_value)
-
-    current_quad_start = prior_quad_end_date + datetime.timedelta(days=1)
     
     try:
         prior_quad = QuadReturn.objects.filter(quarter_end_date=prior_quad_end_date).latest('quarter_end_date', 'data_end_date')
