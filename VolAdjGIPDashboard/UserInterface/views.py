@@ -119,7 +119,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     quad_allocations = dict()
 
     # Quad Return Calculation
-    current_quad_forecast = QuadForecasts.objects.latest('quarter_end_date', 'date')
+    current_quad_forecast = QuadForecasts.objects.filter(quarter_end_date__lte=latest_date).latest('quarter_end_date', 'date')
     current_quad, quarter_end_date = current_quad_forecast.quad, current_quad_forecast.quarter_end_date
 
     current_quad_return = dict()
