@@ -324,14 +324,15 @@ class YahooHistory(SecurityHistory):
     def quad_return(cls, tickers, date_within_quad):
         tickers.sort() # make the list deterministic for the same input (used for label later)
 
-        current_quad = QuadForecasts.objects.filter(quarter_end_date__lte=date_within_quad).latest('quarter_end_date', 'date')
+        quarter_end_date = (date_within_quad + pd.tseries.offsets.QuarterEnd(n=0)).date()
+        current_quad = QuadForecasts.objects.filter(quarter_end_date=quarter_end_date).latest('date')
         #print(f"current_quad quarter={current_quad.quarter_end_date} date={current_quad.date}")
 
         # this is the last known date for the prior quad
         start_date = (date_within_quad - pd.tseries.offsets.QuarterEnd(1) + datetime.timedelta(days=1)).date()
         #print(f"last known date for prior quad: {start_date}")
         
-        # this is when we started this quad       
+        # this is when we started this quad
         history = cls.objects.filter(ticker__in=tickers, date__gte=start_date, date__lte=date_within_quad).order_by('date')
 
         try:
@@ -479,7 +480,7 @@ class QuadForecasts(models.Model):
         Fetches the latest GDP and CPI numbers + forecasts. Excludes older forecast data.
         '''
 
-        if start_date is None:        
+        if start_date is None:
             start_date = datetime.date(1950, 1, 1)
 
         # Real GDP, seasonally adjusted. Quarterly.
@@ -487,14 +488,14 @@ class QuadForecasts(models.Model):
 
         # align the FRED quarterly dates to Pandas quarterly dates
         # each index value will be the last day of a quarter. i.e. 2019-06-30 is Q2 2019.
-        gdp_data.index = gdp_data.index.shift(1, freq='Q')   
+        gdp_data.index = gdp_data.index.shift(1, freq='Q')
         gdp_data = gdp_data.resample('Q').asfreq()
 
         # CPI, all items, urban, not seasonally adjusted. Monthly.
         cpi_all_urban_unadjusted_data = web.DataReader('CPIAUCNS', 'fred', start = start_date)['CPIAUCNS']    
         cpi_data = cpi_all_urban_unadjusted_data.resample('Q').mean()
 
-        cpi_nowcasts = CPIForecast.dataframe()        
+        cpi_nowcasts = CPIForecast.dataframe()
         latest_date = cpi_nowcasts.date.max()
 
         cpi_data = pd.concat([cpi_data[~(cpi_data.index.isin(cpi_nowcasts.cpi.index))], cpi_nowcasts.cpi])
@@ -513,7 +514,7 @@ class QuadForecasts(models.Model):
 
         data = data.melt(id_vars=['Forecast Date'], var_name="quarter", value_name="forecast")
         data.columns = ['date', 'quarter', 'forecast']
-        data['quarter'] = pd.to_datetime(data.quarter) + pd.offsets.QuarterEnd()*0
+        data['quarter'] = pd.to_datetime(data.quarter) + pd.offsets.QuarterEnd(n=0)*0
         
         return data, latest_date
 
@@ -528,7 +529,7 @@ class QuadForecasts(models.Model):
         data.dropna(inplace=True)
 
         gdp_df = pd.DataFrame({
-            'date': actual_gdp.index + pd.offsets.QuarterEnd(), # pre-shift, for easy multiplying later
+            'date': actual_gdp.index + pd.offsets.QuarterEnd(n=0), # pre-shift, for easy multiplying later
             'prior_actual_gdp': actual_gdp.values
         }).set_index('date')
 
@@ -537,7 +538,7 @@ class QuadForecasts(models.Model):
         first_order_estimates.drop(['prior_actual_gdp'], inplace=True, axis='columns')
 
         forecasted_gdp = first_order_estimates.reset_index()
-        forecasted_gdp.quarter += pd.offsets.QuarterEnd() # shift for easy multiplying later
+        forecasted_gdp.quarter += pd.offsets.QuarterEnd(n=0) # shift for easy multiplying later
         forecasted_gdp.drop(['growth'], axis='columns', inplace=True)
         forecasted_gdp = forecasted_gdp.rename({'number': 'gdp'}, axis='columns').dropna().set_index(['quarter', 'date'])
 
@@ -573,7 +574,7 @@ class QuadForecasts(models.Model):
         dataframe.drop('growth', inplace=True, axis='columns')
 
         # Collect required GDP numbers
-        shifted_gdp = pd.DataFrame({'quarter': actual_gdp.index + 4*pd.offsets.QuarterEnd(), 'past_gdp': actual_gdp}) # final numbers
+        shifted_gdp = pd.DataFrame({'quarter': actual_gdp.index + 4*pd.offsets.QuarterEnd(n=0), 'past_gdp': actual_gdp}) # final numbers
         shifted_gdp.set_index('quarter', inplace=True)
         dataframe = dataframe.join(shifted_gdp, on='quarter')
 
@@ -582,7 +583,7 @@ class QuadForecasts(models.Model):
         cpi_df.set_index('quarter', inplace=True)
         dataframe = dataframe.join(cpi_df, on='quarter')
 
-        shifted_cpi = pd.DataFrame({'quarter': actual_cpi.index + 4*pd.offsets.QuarterEnd(), 'past_cpi': actual_cpi}) # final numbers
+        shifted_cpi = pd.DataFrame({'quarter': actual_cpi.index + 4*pd.offsets.QuarterEnd(n=0), 'past_cpi': actual_cpi}) # final numbers
         shifted_cpi.set_index('quarter', inplace=True)
         dataframe = dataframe.join(shifted_cpi, on='quarter')
 
@@ -592,7 +593,7 @@ class QuadForecasts(models.Model):
             'past_gdp_yoy': actual_gdp,
         }).pct_change(4)
         merged_data.index.names = ['quarter']
-        merged_data.index += pd.offsets.QuarterEnd() # push forward one quarter
+        merged_data.index += pd.offsets.QuarterEnd(n=0) # push forward one quarter
 
         dataframe = dataframe.join(merged_data, on='quarter')
 
@@ -610,7 +611,7 @@ class QuadForecasts(models.Model):
         dataframe.drop([
             'cpi', 'best_estimate', 'past_gdp', 'past_cpi', 'gdp_yoy', 'cpi_yoy',
             'past_cpi_yoy', 'past_gdp_yoy',
-        ], inplace=True, axis='columns')    
+        ], inplace=True, axis='columns')
 
         return dataframe, latest_date
 
@@ -626,7 +627,7 @@ class QuadForecasts(models.Model):
 
         usa_quads = usa_quads[
             (usa_quads.index.get_level_values('date') <= usa_quads.index.get_level_values('quarter')) &
-            (usa_quads.index.get_level_values('date') > usa_quads.index.get_level_values('quarter') - pd.offsets.QuarterEnd())
+            (usa_quads.index.get_level_values('date') > usa_quads.index.get_level_values('quarter') - pd.offsets.QuarterEnd(n=0))
         ]
 
         for row in usa_quads.itertuples():
@@ -638,13 +639,13 @@ class QuadForecasts(models.Model):
                 continue
 
             cls.objects.update_or_create(
-                quarter_end_date = quarter.date(), 
-                date = latest_date, 
+                quarter_end_date = quarter.date(),
+                date = latest_date,
                 defaults = {
                     'updated': datetime.datetime.now(),
                     'cpi_roc': row.cpi_roc,
                     'gdp_roc': row.gdp_roc,
-                    'quad': int(row.quad)                   
+                    'quad': int(row.quad)
                 }
             )
 
