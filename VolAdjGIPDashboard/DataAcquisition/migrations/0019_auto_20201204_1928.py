@@ -3,8 +3,9 @@
 from django.db import migrations
 
 def forwards_func(apps, schema_edtior):
-    YahooHistory = apps.get_model("DataAcquisition", "YahooHistory")
-    QuadReturn = apps.get_model("DataAcquisition", "QuadReturn")
+    #YahooHistory = apps.get_model("DataAcquisition", "YahooHistory")
+    #QuadReturn = apps.get_model("DataAcquisition", "QuadReturn")
+    from DataAcquisition.models import YahooHistory, QuadReturn # bad practice, but only way to access class methods
 
     print("Force updating YahooHistory symbols ...")
     YahooHistory.update(tickers=['QQQ', 'XLI', 'XLF', 'GLD', 'XLU', 'UUP', 'TLT'], clobber=True)
