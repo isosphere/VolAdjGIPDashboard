@@ -529,7 +529,7 @@ class QuadForecasts(models.Model):
         data.dropna(inplace=True)
 
         gdp_df = pd.DataFrame({
-            'date': actual_gdp.index + pd.offsets.QuarterEnd(n=0), # pre-shift, for easy multiplying later
+            'date': actual_gdp.index + pd.offsets.QuarterEnd(n=1), # pre-shift, for easy multiplying later
             'prior_actual_gdp': actual_gdp.values
         }).set_index('date')
 
@@ -538,7 +538,7 @@ class QuadForecasts(models.Model):
         first_order_estimates.drop(['prior_actual_gdp'], inplace=True, axis='columns')
 
         forecasted_gdp = first_order_estimates.reset_index()
-        forecasted_gdp.quarter += pd.offsets.QuarterEnd(n=0) # shift for easy multiplying later
+        forecasted_gdp.quarter += pd.offsets.QuarterEnd(n=1) # shift for easy multiplying later
         forecasted_gdp.drop(['growth'], axis='columns', inplace=True)
         forecasted_gdp = forecasted_gdp.rename({'number': 'gdp'}, axis='columns').dropna().set_index(['quarter', 'date'])
 
