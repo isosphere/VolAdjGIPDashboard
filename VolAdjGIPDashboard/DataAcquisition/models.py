@@ -103,7 +103,7 @@ class SecurityHistory(models.Model):
         dataframe = pd.DataFrame.from_records(results, columns=['date', 'ticker', 'close_price'], coerce_float=True)
         dataframe.date = pd.to_datetime(dataframe.date)
         dataframe.set_index(['ticker', 'date'], inplace=True)
-        dataframe.sort_index(inplace=True, ascending=True, level=['ticker', 'date'])        
+        dataframe.sort_index(inplace=True, ascending=True, level=['ticker', 'date'])
 
         return dataframe
 
