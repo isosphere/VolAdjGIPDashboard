@@ -198,8 +198,8 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
 
         if quad not in quad_performance:
             quad_performance[quad] = list()
-                    
-        quad_performance[quad].append(((date-current_quad_start).days, score))
+        
+        quad_performance[quad].append(((date-current_quad_start).days, round(score, 2)))
 
     prior_quad_performance = dict()
     for ticker_lookup, date, score in prior_quad_returns:
@@ -207,8 +207,8 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
 
         if quad not in prior_quad_performance:
             prior_quad_performance[quad] = list()
-                    
-        prior_quad_performance[quad].append(((date-prior_quad_start).days, score))    
+        
+        prior_quad_performance[quad].append(((date-prior_quad_start).days, round(score, 2)))
 
     return render(request, 'UserInterface/index.htm', {
         'current_quad_return': current_quad_return,
