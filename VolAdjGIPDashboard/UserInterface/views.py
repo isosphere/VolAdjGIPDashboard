@@ -182,6 +182,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
 
     # time series data for quad return charts
     quad_returns = QuadReturn.objects.filter(quarter_end_date=quarter_end_date).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev')).values_list('label', 'data_end_date', 'score')
+    prior_quad_returns = QuadReturn.objects.filter(quarter_end_date=prior_quad_end_date).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev')).values_list('label', 'data_end_date', 'score')
 
     quad_ticker_lookup = dict()
     for quad in quad_allocation:
@@ -197,8 +198,17 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
 
         if quad not in quad_performance:
             quad_performance[quad] = list()
-        
+                    
         quad_performance[quad].append(((date-current_quad_start).days, score))
+
+    prior_quad_performance = dict()
+    for ticker_lookup, date, score in prior_quad_returns:
+        quad = quad_ticker_lookup[ticker_lookup]
+
+        if quad not in prior_quad_performance:
+            prior_quad_performance[quad] = list()
+                    
+        prior_quad_performance[quad].append(((date-prior_quad_start).days, score))    
 
     return render(request, 'UserInterface/index.htm', {
         'current_quad_return': current_quad_return,
@@ -206,6 +216,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         'daily_return': daily_return,
 
         'quad_performance': quad_performance,
+        'prior_quad_performance': prior_quad_performance,
 
         'quad_allocations': quad_allocations,
         'latest_date': latest_date,

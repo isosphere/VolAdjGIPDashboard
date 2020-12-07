@@ -437,7 +437,7 @@
                 data: {
                     datasets: [
                         {
-                            label: "score",
+                            label: "Current",
                             data: [
                                 {% if quad == 1 %}
                                 {% for datum in quad_performance.1 %}
@@ -475,6 +475,45 @@
                             pointBackgroundColor: ['#00ff00'],
                             backgroundColor: '#00ff00'
                         },
+                        {
+                            label: "Prior Quarter",
+                            data: [
+                                {% if quad == 1 %}
+                                {% for datum in prior_quad_performance.1 %}
+                                {
+                                    x: {{datum.0}},
+                                    y: {{datum.1}}
+                                },
+                                {% endfor %}
+                                {% endif %}
+                                {% if quad == 2 %}
+                                {% for datum in prior_quad_performance.2 %}
+                                {
+                                    x: {{datum.0}},
+                                    y: {{datum.1}}
+                                },
+                                {% endfor %}
+                                {% endif %}
+                                {% if quad == 3 %}
+                                {% for datum in prior_quad_performance.3 %}
+                                {
+                                    x: {{datum.0}},
+                                    y: {{datum.1}}
+                                },
+                                {% endfor %}
+                                {% endif %}
+                                {% if quad == 4 %}
+                                {% for datum in prior_quad_performance.4 %}
+                                {
+                                    x: {{datum.0}},
+                                    y: {{datum.1}}
+                                },
+                                {% endfor %}
+                                {% endif %}
+                            ],
+                            pointBackgroundColor: ['#0000ff'],
+                            backgroundColor: '#0000ff'
+                        }                        
                     ]
                 },
                 options: {
@@ -499,14 +538,14 @@
                                 display: true
                             },
                             ticks: {
-                                suggestedMax: 20.0,
-                                suggestedMin: -20.0,
+                                suggestedMax: 25.0,
+                                suggestedMin: -25.0,
                                 stepSize: 5.0,
                             }
                         }]
                     },
                     legend: {
-                        display: false,
+                        display: true,
                     }
                 }
             });
