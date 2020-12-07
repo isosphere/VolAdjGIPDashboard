@@ -29,6 +29,7 @@ class QuadReturn(models.Model):
 
     @classmethod
     def update(cls, first_date=None):
+        logger = logging.getLogger('QuadReturn.update')
         quad_allocation = {
             1: ['QQQ',],
             2: ['XLF', 'XLI', 'QQQ'],
@@ -41,33 +42,33 @@ class QuadReturn(models.Model):
 
         for quad in quad_allocation:
             try_date = first_date
-            print(f"Calculating quad returns since {try_date} for quad {quad}")
+            logger.debug(f"Calculating quad returns since {try_date} for quad {quad}")
 
             while try_date <= latest_date:
-                print(f"Quad={quad} date = {try_date} ... ", end='')
+                logger.debug(f"Quad={quad} date = {try_date} ... ")
                 try:
                     YahooHistory.quad_return(
                         tickers=quad_allocation[quad],
                         date_within_quad=try_date
                     )
-                    print("Ok.")
+                    logger.debug("Ok.")
 
                     try_date += datetime.timedelta(days=1)
 
                 except YahooHistory.DoesNotExist:
-                    print("No YahooHistory instance for that date.")
+                    logger.debug("No YahooHistory instance for that date.")
                     try_date += datetime.timedelta(days=1)
 
                 except QuadForecasts.DoesNotExist:
-                    print("No QuadForecast instance for that date.")
+                    logger.debug("No QuadForecast instance for that date.")
                     try_date += datetime.timedelta(days=1)
                 
                 except IntegrityError:
-                    print("IntegrityError saving calculated return.")
+                    logger.debug("IntegrityError saving calculated return.")
                     try_date += datetime.timedelta(days=1)
 
                 except ValueError:
-                    print("Insufficient data for calculation.")
+                    logger.debug("Insufficient data for calculation.")
                     try_date += datetime.timedelta(days=1)
 
     class Meta:
