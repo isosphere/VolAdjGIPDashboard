@@ -214,7 +214,13 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     latest_performance = performance_change[quad] = quad_returns.latest('data_end_date').data_end_date
     for lookup in quad_ticker_lookup:
         quad = quad_ticker_lookup[lookup]
-        performance_change[quad] = round(100*(quad_returns.get(label=lookup, data_end_date=latest_performance).score / quad_returns.exclude(data_end_date=latest_performance).filter(label=lookup).latest('data_end_date').score - 1), ndigits=1)
+        current_performance = quad_returns.get(label=lookup, data_end_date=latest_performance).score
+        prior_performance = quad_returns.exclude(data_end_date=latest_performance).filter(label=lookup).latest('data_end_date').score
+        performance_change[quad] = round(100*(current_performance / prior_performance - 1), ndigits=1)
+        
+        # fix for negative comparisons showing positive change
+        if current_performance < prior_performance and performance_change[quad] > 0:
+            performance_change[quad] *= -1
 
     return render(request, 'UserInterface/index.htm', {
         'current_quad_return': current_quad_return,
