@@ -181,8 +181,8 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     net_liquidating_value = round(net_liquidating_value, 0)
 
     # time series data for quad return charts
-    quad_returns = QuadReturn.objects.filter(quarter_end_date=quarter_end_date).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev')).values_list('label', 'data_end_date', 'score')
-    prior_quad_returns = QuadReturn.objects.filter(quarter_end_date=prior_quad_end_date).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev')).values_list('label', 'data_end_date', 'score')
+    quad_returns = QuadReturn.objects.filter(quarter_end_date=quarter_end_date).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev'))
+    prior_quad_returns = QuadReturn.objects.filter(quarter_end_date=prior_quad_end_date).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev'))
 
     quad_ticker_lookup = dict()
     for quad in quad_allocation:
@@ -191,9 +191,9 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         expected_label = ','.join(tickers).upper()
 
         quad_ticker_lookup[expected_label] = quad
-
+    
     quad_performance = dict()
-    for ticker_lookup, date, score in quad_returns:
+    for ticker_lookup, date, score in quad_returns.values_list('label', 'data_end_date', 'score'):
         quad = quad_ticker_lookup[ticker_lookup]
 
         if quad not in quad_performance:
@@ -202,13 +202,19 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         quad_performance[quad].append(((date-current_quad_start).days, round(score, 2)))
 
     prior_quad_performance = dict()
-    for ticker_lookup, date, score in prior_quad_returns:
+    for ticker_lookup, date, score in prior_quad_returns.values_list('label', 'data_end_date', 'score'):
         quad = quad_ticker_lookup[ticker_lookup]
 
         if quad not in prior_quad_performance:
             prior_quad_performance[quad] = list()
         
         prior_quad_performance[quad].append(((date-prior_quad_start).days, round(score, 2)))
+
+    performance_change = dict()
+    latest_performance = performance_change[quad] = quad_returns.latest('data_end_date').data_end_date
+    for lookup in quad_ticker_lookup:
+        quad = quad_ticker_lookup[lookup]
+        performance_change[quad] = round(100*(quad_returns.get(label=lookup, data_end_date=latest_performance).score / quad_returns.exclude(data_end_date=latest_performance).filter(label=lookup).latest('data_end_date').score - 1), ndigits=1)
 
     return render(request, 'UserInterface/index.htm', {
         'current_quad_return': current_quad_return,
@@ -217,6 +223,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
 
         'quad_performance': quad_performance,
         'prior_quad_performance': prior_quad_performance,
+        'performance_change': performance_change,
 
         'quad_allocations': quad_allocations,
         'latest_date': latest_date,
