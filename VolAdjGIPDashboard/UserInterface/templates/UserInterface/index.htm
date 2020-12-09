@@ -49,9 +49,9 @@
                                     <thead class="thead-dark">
                                         <tr>
                                             <th>Quad</th>
-                                            <th>Return</th>
-                                            <th>σ</th>
-                                            <th>Ratio</th>
+                                            <th data-toggle="tooltip" data-placement="top" title="Cumulative since quarter start">Return</th>
+                                            <th data-toggle="tooltip" data-placement="top" title="Since quarter start">σ</th>
+                                            <th data-toggle="tooltip" data-placement="top" title="return / standard deviation">Ratio</th>
                                         </tr>
                                     </thead>
                                     {% for quad, value in prior_quad_return.items %}
@@ -94,9 +94,9 @@
                                     <thead class="thead-dark">
                                         <tr>
                                             <th>Quad</th>
-                                            <th>Return</th>
-                                            <th>σ</th>
-                                            <th>Ratio</th>
+                                            <th data-toggle="tooltip" data-placement="top" title="Cumulative since quarter start">Return</th>
+                                            <th data-toggle="tooltip" data-placement="top" title="Since quarter start">σ</th>
+                                            <th data-toggle="tooltip" data-placement="top" title="return / standard deviation">Ratio</th>
                                         </tr>
                                     </thead>
                                     {% for quad, value in current_quad_return.items %}
