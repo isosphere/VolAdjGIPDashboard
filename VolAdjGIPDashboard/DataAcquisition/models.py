@@ -30,25 +30,25 @@ class QuadReturn(models.Model):
     @classmethod
     def update(cls, first_date=None):
         logger = logging.getLogger('QuadReturn.update')
-        quad_allocation = {
-            1: ['QQQ',],
-            2: ['XLF', 'XLI', 'QQQ'],
-            3: ['GLD',],
-            4: ['XLU', 'TLT', 'UUP']
-        }
+        tickers = [
+            ['QQQ',],
+            ['XLF', 'XLI', 'QQQ'],
+            ['GLD',],
+            ['XLU', 'TLT', 'UUP']
+        ] + list(map(lambda x: [x], YahooHistory.objects.values_list('ticker', flat=True).distinct()))
 
         latest_date = YahooHistory.objects.latest('date').date
         first_date = first_date if first_date is not None else YahooHistory.objects.earliest('date').date
 
-        for quad in quad_allocation:
+        for labels in tickers:
             try_date = first_date
-            logger.debug(f"Calculating quad returns since {try_date} for quad {quad}")
+            logger.debug(f"Calculating quad returns since {try_date} for tickers {labels}")
 
             while try_date <= latest_date:
-                logger.debug(f"Quad={quad} date = {try_date} ... ")
+                logger.debug(f"Tickers={labels} date = {try_date} ... ")
                 try:
                     YahooHistory.quad_return(
-                        tickers=quad_allocation[quad],
+                        tickers=labels,
                         date_within_quad=try_date
                     )
                     logger.debug("Ok.")
