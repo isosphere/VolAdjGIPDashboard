@@ -132,6 +132,9 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
 
         # get realized vol as of last week - don't let the buy/sell targets move with current vol
         last_week_vol = YahooHistory.objects.get(ticker=symbol, date=last_week_date).realized_volatility
+        current_performance = QuadReturn.objects.filter(label=symbol).latest('quarter_end_date', 'data_end_date')
+        if current_performance:
+            current_performance = current_performance.quad_return / current_performance.quad_stdev
 
         if last_week_vol is not None:
             symbol_values[symbol] = (
@@ -139,7 +142,9 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
                 round(100*last_week_vol, 2), 
                 round(last_week_val * ( 1 - last_week_vol), 2),
                 round(last_week_val * ( 1 + last_week_vol), 2),
-                int(round(100*(symbol_data.close_price - last_week_val*(1 - last_week_vol)) / ( last_week_val * ( 1 + last_week_vol) - last_week_val * ( 1 - last_week_vol)), 0))
+                int(round(100*(symbol_data.close_price - last_week_val*(1 - last_week_vol)) / ( last_week_val * ( 1 + last_week_vol) - last_week_val * ( 1 - last_week_vol)), 0)),
+                '--.--' if not current_performance else round(current_performance, 2),
+
             )
         else:
             symbol_values[symbol] = (
@@ -147,11 +152,13 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
                 '--.--', 
                 '--.--',
                 '--.--',
-                '--.--'
-            )            
+                '--.--',
+                '--.--' if not current_performance else round(current_performance, 2),
+            )
 
     symbol_values["USDCAD"] = (
         latest_rate,
+        "--.--",
         "--.--",
         "--.--",
         "--.--",
