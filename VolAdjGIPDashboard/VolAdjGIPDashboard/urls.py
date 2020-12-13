@@ -21,4 +21,5 @@ from UserInterface import views as UX
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', UX.index, name='index'),
+    path('performance/<str:label>', UX.quad_performance, name='performance')
 ]

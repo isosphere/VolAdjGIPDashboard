@@ -1,0 +1,98 @@
+{% extends 'UserInterface/base.htm' %}
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-sm">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{label}}'s Performance</h5>
+                    <p class="card-text">
+                        Score change today: {{ performance_change }}%
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Quarter Performance</h5>
+                    <p class="card-text">
+                        <canvas id="quad_performance"></canvas>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.0/dist/Chart.min.js"></script>
+<script>
+    var ctx_score = document.getElementById('quad_performance').getContext('2d');
+    var scatterChart = new Chart(ctx_score, {
+        type: 'scatter',
+        data: {
+            datasets: [
+                {
+                    label: "Current",
+                    data: [
+                        {% for datum in quad_performance %}
+                        {
+                            x: {{datum.0}},
+                            y: {{datum.1}}
+                        },
+                        {% endfor %}
+                    ],
+                    pointBackgroundColor: ['#00ff00'],
+                    backgroundColor: '#00ff00'
+                },
+                {
+                    label: "Prior Quarter",
+                    data: [
+                        {% for datum in prior_quad_performance %}
+                        {
+                            x: {{datum.0}},
+                            y: {{datum.1}}
+                        },
+                        {% endfor %}
+                    ],
+                    pointBackgroundColor: ['#0000ff'],
+                    backgroundColor: '#0000ff'
+                }
+            ]
+        },
+        options: {
+            scales: {
+                xAxes: [{
+                    type: 'linear',
+                    position: 'bottom',
+                    scaleLabel: {
+                        labelString: "Quarter Depth",
+                        display: true
+                    },
+                    ticks: {
+                        suggestedMax: 90.0,
+                        suggestedMin: 0.0,
+                        stepSize: 5.0,
+                    }
+                }],
+                yAxes: [{
+                    type: 'linear',
+                    scaleLabel: {
+                        labelString: "Ratio",
+                        display: true
+                    },
+                    ticks: {
+                        suggestedMax: 25.0,
+                        suggestedMin: -25.0,
+                        stepSize: 5.0,
+                    }
+                }]
+            },
+            legend: {
+                display: true,
+            }
+        }
+    });
+</script>
+{% endblock %}

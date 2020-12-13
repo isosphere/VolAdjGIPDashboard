@@ -1,43 +1,5 @@
-{% load bootstrap4 %}
-
-<!DOCTYPE html>
-<html>
-    <head>
-        {% bootstrap_css %}
-        <style type="text/css">
-            body {
-                padding: 10px;
-                margin: 10px;
-            }
-        </style>
-
-        <!--Let browser know website is optimized for mobile-->
-        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    </head>
-
-    <body>
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
-            <a href="#" class="navbar-brand">VEGI Portfolio</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle Navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarContent">
-                <ul class="navbar-nav mr-auto">
-                    <li class="nav-item active">Home</li>
-                </ul>
-            </div>
-        </nav>
-
-        {% bootstrap_messages %}
-
-        <h1 class="display-3">{{latest_date}}</h1>
-        <p>
-            We are not responsible for any errors in or omissions related to this information, or for any consequences that may result from the use of this information. 
-            This is here as a convience to the those that created it and is not a public service or recommendation. Buy and sell levels are not intended to be used
-            exclusively without regard for macro-economic climate. 
-            This is a live development environment: there will be errors and omissions.
-        </p>
-
+{% extends 'UserInterface/base.htm' %}
+{% block content %}
         <div class="container">
             <div class="row">
                 <div class="col-md">
@@ -324,7 +286,7 @@
                                     </thead>
                                     {% for symbol, value in symbol_values.items %}
                                     <tr>
-                                        <td>{{symbol}}</td>
+                                        <td><a href="/performance/{{symbol}}">{{symbol}}</a></td>
                                         <td>{{value.4}}</td>
                                         <td>${{value.2}}</td>
                                         <td class="alert-primary">${{value.0}}</td>
@@ -384,7 +346,6 @@
         </div>
 
         <!--JavaScript at end of body for optimized loading-->
-        {% bootstrap_javascript jquery='full' %}
         <script type="text/javascript">
             $(function () {
                 $('[data-toggle="tooltip"]').tooltip()
@@ -582,14 +543,5 @@
             });
             {% endfor %}
         </script>
-        <!-- Global site tag (gtag.js) - Google Analytics -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id={{GOOGLE_ID}}"></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
 
-            gtag('config', '{{GOOGLE_ID}}');
-        </script>
-    </body>
-</html>
+{% endblock %}
