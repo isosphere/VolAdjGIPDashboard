@@ -93,6 +93,7 @@ class SecurityHistory(models.Model):
     ticker = models.CharField(max_length=12)
     close_price = models.FloatField()
     updated = models.DateTimeField(auto_now=True)
+    realized_volatility = models.FloatField(null=True) 
 
     @classmethod
     def update(cls, tickers=None, clobber=False, start=None, end=None):
@@ -120,6 +121,32 @@ class SecurityHistory(models.Model):
         dataframe.sort_index(inplace=True, ascending=True, level=['ticker', 'date'])
 
         return dataframe
+
+    @classmethod
+    def calculate_stats(cls, lookback=52):
+        logger = logging.getLogger('SecurityHistory.calculate_stats')
+        
+        missing_sections = set(cls.objects.filter(realized_volatility__isnull=True).values_list('date', 'ticker').distinct())
+        
+        # calculate all
+        all_data = cls.dataframe().groupby([
+            pd.Grouper(level='ticker'),
+            pd.Grouper(level='date', freq='W')
+        ]).last().apply(np.log)
+
+        all_data['prior'] = all_data.groupby('ticker').close_price.shift(1)
+        all_data = (all_data.close_price - all_data.prior).groupby('ticker').rolling(lookback).std(ddof=0).droplevel(0).dropna()
+
+        for date, ticker in missing_sections:
+            weekending = (date + pd.offsets.Week(weekday=6)).date()
+
+            result = all_data.loc[
+                (all_data.index.get_level_values('date') == "%s" % weekending) &
+                (all_data.index.get_level_values('ticker') == ticker)
+            ]
+
+            if not result.empty:
+                cls.objects.filter(ticker=ticker, date=date).update(realized_volatility=result.values[0])
 
     def __str__(self):
         return f"{self.ticker} on {self.date} was {self.close_price}"
@@ -159,35 +186,6 @@ class AlphaVantageHistory(SecurityHistory):
 
 
 class YahooHistory(SecurityHistory):
-    realized_volatility = models.FloatField(null=True) 
-
-    @classmethod
-    def calculate_stats(cls, lookback=52):
-        logger = logging.getLogger('YahooHistory.calculate_stats')
-        
-        missing_sections = set(cls.objects.filter(realized_volatility__isnull=True).values_list('date', 'ticker').distinct())
-        
-        # calculate all
-        all_data = cls.dataframe().groupby([
-            pd.Grouper(level='ticker'),
-            pd.Grouper(level='date', freq='W')
-        ]).last().apply(np.log)
-
-        all_data['prior'] = all_data.groupby('ticker').close_price.shift(1)
-        all_data = (all_data.close_price - all_data.prior).groupby('ticker').rolling(lookback).std(ddof=0).droplevel(0).dropna()
-
-        for date, ticker in missing_sections:
-            weekending = (date + pd.offsets.Week(weekday=6)).date()
-
-            result = all_data.loc[
-                (all_data.index.get_level_values('date') == "%s" % weekending) &
-                (all_data.index.get_level_values('ticker') == ticker)
-            ]
-
-            if not result.empty:
-                cls.objects.filter(ticker=ticker, date=date).update(realized_volatility=result.values[0])
-
-
     @classmethod
     def update(cls, tickers=None, clobber=False, start=None, end=None):
         logger = logging.getLogger('YahooHistory.update')
@@ -237,7 +235,6 @@ class YahooHistory(SecurityHistory):
                 obj.realized_volatility_week = None
                 obj.updated = datetime.datetime.now()
                 obj.save()
-
 
     @classmethod
     def equal_volatility_position(cls, tickers, lookback=28, target_value=10000, max_date=None):
