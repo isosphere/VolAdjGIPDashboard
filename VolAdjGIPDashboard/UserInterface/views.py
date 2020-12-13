@@ -105,7 +105,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
             if symbol not in all_symbols:
                 all_symbols.append(symbol)
 
-    all_symbols += ['XLV', 'SHY', 'EDV', 'IWM', 'PSP', 'RSP', 'JNK', 'FXB', 'EWG', 'EWA', 'ITB', 'TIP', 'VTI', 'BND']
+    all_symbols += ['XLV', 'SHY', 'EDV', 'IWM', 'PSP', 'RSP', 'JNK', 'FXB', 'EWG', 'EWA', 'ITB', 'TIP', 'VTI', 'BND', 'XLE']
     all_symbols.sort()
 
     for symbol in all_symbols:
