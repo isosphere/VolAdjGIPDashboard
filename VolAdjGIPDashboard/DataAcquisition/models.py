@@ -35,13 +35,19 @@ class QuadReturn(models.Model):
             ['XLF', 'XLI', 'QQQ'],
             ['GLD',],
             ['XLU', 'TLT', 'UUP']
-        ] + list(map(lambda x: [x], YahooHistory.objects.values_list('ticker', flat=True).distinct()))
+        ] + list(map(lambda x: [x.upper()], YahooHistory.objects.values_list('ticker', flat=True).distinct()))
 
         latest_date = YahooHistory.objects.latest('date').date
         first_date = first_date if first_date is not None else YahooHistory.objects.earliest('date').date
 
         for labels in tickers:
-            try_date = first_date
+            sortable = labels
+            sortable.sort()
+            modified_label = ','.join(sortable)
+
+            existing_data_start = cls.objects.filter(label=modified_label).latest('data_end_date')
+            try_date = first_date if not existing_data_start else existing_data_start.data_end_date
+            
             logger.debug(f"Calculating quad returns since {try_date} for tickers {labels}")
 
             while try_date <= latest_date:
