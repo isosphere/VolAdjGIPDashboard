@@ -9,6 +9,54 @@ from django.conf import settings
 from django.contrib import messages
 from django.shortcuts import render
 
+def quad_performance(request, tickers):
+    latest_date = YahooHistory.objects.latest('date').date
+    
+    current_quad_forecast = QuadForecasts.objects.filter(quarter_end_date=latest_date + pd.tseries.offsets.QuarterEnd(n=0)).latest('date')
+    current_quad, quarter_end_date = current_quad_forecast.quad, current_quad_forecast.quarter_end_date
+
+    # time series data for quad return charts
+    quad_returns = QuadReturn.objects.filter(quarter_end_date=quarter_end_date).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev'))
+    prior_quad_returns = QuadReturn.objects.filter(quarter_end_date=prior_quad_end_date).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev'))
+
+    quad_ticker_lookup = dict()
+    for quad in quad_allocation:
+        tickers = quad_allocation[quad]
+        tickers.sort()
+        expected_label = ','.join(tickers).upper()
+
+        quad_ticker_lookup[expected_label] = quad
+    
+    quad_performance = dict()
+    for ticker_lookup, date, score in quad_returns.values_list('label', 'data_end_date', 'score'):
+        quad = quad_ticker_lookup[ticker_lookup]
+
+        if quad not in quad_performance:
+            quad_performance[quad] = list()
+        
+        quad_performance[quad].append(((date-current_quad_start).days, round(score, 2)))
+
+    prior_quad_performance = dict()
+    for ticker_lookup, date, score in prior_quad_returns.values_list('label', 'data_end_date', 'score'):
+        quad = quad_ticker_lookup[ticker_lookup]
+
+        if quad not in prior_quad_performance:
+            prior_quad_performance[quad] = list()
+        
+        prior_quad_performance[quad].append(((date-prior_quad_start).days, round(score, 2)))
+
+    performance_change = dict()
+    latest_performance = performance_change[quad] = quad_returns.latest('data_end_date').data_end_date
+    for lookup in quad_ticker_lookup:
+        quad = quad_ticker_lookup[lookup]
+        current_performance = quad_returns.get(label=lookup, data_end_date=latest_performance).score
+        prior_performance = quad_returns.exclude(data_end_date=latest_performance).filter(label=lookup).latest('data_end_date').score
+        performance_change[quad] = round(100*(current_performance / prior_performance - 1), ndigits=1)
+        
+        # fix for negative comparisons showing positive change
+        if current_performance < prior_performance and performance_change[quad] > 0:
+            performance_change[quad] *= -1
+
 def index(request, default_net_liquidating_value=10000, lookback=52, default_currency='USD'):
     # Commitment of Traders
     latest_cot_date = CommitmentOfTraders.objects.latest('date').date
@@ -181,8 +229,9 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     net_liquidating_value = round(net_liquidating_value, 0)
 
     # time series data for quad return charts
-    quad_returns = QuadReturn.objects.filter(quarter_end_date=quarter_end_date).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev'))
-    prior_quad_returns = QuadReturn.objects.filter(quarter_end_date=prior_quad_end_date).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev'))
+    quad_labels = ('QQQ', 'QQQ,XLF,XLI', 'GLD', 'TLT,UUP,XLU')
+    quad_returns = QuadReturn.objects.filter(quarter_end_date=quarter_end_date, label__in=quad_labels).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev'))
+    prior_quad_returns = QuadReturn.objects.filter(quarter_end_date=prior_quad_end_date, label__in=quad_labels).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev'))
 
     quad_ticker_lookup = dict()
     for quad in quad_allocation:
