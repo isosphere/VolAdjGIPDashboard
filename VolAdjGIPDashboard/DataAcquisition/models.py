@@ -28,14 +28,17 @@ class QuadReturn(models.Model):
     quad_stdev = models.FloatField()
 
     @classmethod
-    def update(cls, first_date=None):
+    def update(cls, first_date=None, ticker=None):
         logger = logging.getLogger('QuadReturn.update')
-        tickers = [
-            ['QQQ',],
-            ['XLF', 'XLI', 'QQQ'],
-            ['GLD',],
-            ['XLU', 'TLT', 'UUP']
-        ] + list(map(lambda x: [x.upper()], YahooHistory.objects.values_list('ticker', flat=True).distinct()))
+        if ticker is None:
+            tickers = [
+                ['QQQ',],
+                ['XLF', 'XLI', 'QQQ'],
+                ['GLD',],
+                ['XLU', 'TLT', 'UUP']
+            ] + list(map(lambda x: [x.upper()], YahooHistory.objects.values_list('ticker', flat=True).distinct()))
+        else:
+            tickers = [[ticker,]]
 
         latest_date = YahooHistory.objects.latest('date').date
         first_date = first_date if first_date is not None else YahooHistory.objects.earliest('date').date
@@ -45,7 +48,11 @@ class QuadReturn(models.Model):
             sortable.sort()
             modified_label = ','.join(sortable)
 
-            existing_data_start = cls.objects.filter(label=modified_label).latest('data_end_date')
+            try:
+                existing_data_start = cls.objects.filter(label=modified_label).latest('data_end_date')
+            except cls.DoesNotExist:
+                existing_data_start = None
+            
             try_date = first_date if not existing_data_start else existing_data_start.data_end_date
             
             logger.debug(f"Calculating quad returns since {try_date} for tickers {labels}")
