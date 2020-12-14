@@ -217,7 +217,7 @@
                         <div class="card-body">
                             <h5 class="card-title">Commitment of Traders - Non-commercial Net Long Positioning - {{latest_cot_date}}</h5>
                             <p class="card-text">
-                                <table class="table">
+                                <table class="table" id="cftc-cot">
                                     <thead class="thead-dark">
                                         <tr>
                                             <th>Security</th>
@@ -227,6 +227,7 @@
                                             <th>1-Year Abs. Z-Score</th>
                                             <th>3-Year Abs. Z-Score</th>
                                         </tr>
+                                    </thead>
                                         {% for cot_value in cot_data %}
                                         <tr>
                                             <td>{{cot_value.symbol}}</td>
@@ -273,7 +274,7 @@
                         <div class="card-body">
                             <h5 class="card-title">{{data_updated}} EST</h5>
                             <p class="card-text">
-                                <table class="table">
+                                <table class="table" id="symbol-list">
                                     <thead class="thead-dark">
                                         <tr>
                                             <th>Symbol</th>
@@ -545,5 +546,22 @@
             });
             {% endfor %}
         </script>
-
+        <script>
+            $(document).ready(function() {
+                $('#symbol-list').DataTable({
+                    paging: false,
+                    searching: false,
+                    columnDefs: [
+                        { type: 'formatted-num', targets: 1},
+                    ]
+                });
+                $('#cftc-cot').DataTable({
+                    paging: false,
+                    searching: false,
+                    columnDefs: [
+                        { type: 'formatted-num', targets: "_all"},
+                    ]
+                });
+            });
+        </script>
 {% endblock %}

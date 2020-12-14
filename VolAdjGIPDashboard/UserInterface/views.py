@@ -162,7 +162,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         "--.--",
         "--.--",
         "--.--",
-        "--.--"
+        "0.00"
     )
 
     # for positioning, at the bottom of our page
