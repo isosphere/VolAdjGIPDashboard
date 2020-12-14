@@ -117,30 +117,30 @@
                                         </td>
                                         {% if quad == 1 %}
                                         {% if performance_change.1 < 0 %}
-                                        <td class="text-danger" align="center">
+                                        <td class="text-danger">
                                         {% else %}
-                                        <td class="text-success" align="center">
+                                        <td class="text-success">
                                         {% endif %}
                                         {{performance_change.1}} %
                                         {% elif quad == 2 %}
                                         {% if performance_change.2 < 0 %}
-                                        <td class="text-danger" align="center">
+                                        <td class="text-danger">
                                         {% else %}
-                                        <td class="text-success" align="center">
+                                        <td class="text-success">
                                         {% endif %}
                                         {{performance_change.2}} %
                                         {% elif quad == 3 %}
                                         {% if performance_change.3 < 0 %}
-                                        <td class="text-danger" align="center">
+                                        <td class="text-danger">
                                         {% else %}
-                                        <td class="text-success" align="center">
+                                        <td class="text-success">
                                         {% endif %}
                                         {{performance_change.3}} %
                                         {% elif quad == 4 %}
                                         {% if performance_change.4 < 0 %}
-                                        <td class="text-danger" align="center">
+                                        <td class="text-danger">
                                         {% else %}
-                                        <td class="text-success" align="center">
+                                        <td class="text-success">
                                         {% endif %}
                                         {{performance_change.4}} %
                                         {% endif %}
@@ -351,7 +351,7 @@
         </div>
 
         <!--JavaScript at end of body for optimized loading-->
-        <script type="text/javascript">
+        <script>
             $(function () {
                 $('[data-toggle="tooltip"]').tooltip()
             })
