@@ -6,7 +6,7 @@
                     <div class="card">
                         <div class="card-body">
                             <h5 class="card-title">Prior Quarter</h5>
-                            <p class="card-text">
+                            <div class="card-text">
                                 <table class="table">
                                     <thead class="thead-dark">
                                         <tr>
@@ -43,7 +43,7 @@
                                 <ul>
                                     <li>{{prior_quad_start}} - {{prior_quad_end}}</li>
                                 </ul>
-                            </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -51,7 +51,7 @@
                     <div class="card">
                         <div class="card-body">
                             <h5 class="card-title">Current Quarter</h5>
-                            <p class="card-text">
+                            <div class="card-text">
                                 <table class="table">
                                     <thead class="thead-dark">
                                         <tr>
@@ -88,7 +88,7 @@
                                 <ul>
                                     <li>{{current_quad_start}} - present</li>
                                 </ul>
-                            </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -96,7 +96,7 @@
                     <div class="card">
                         <div class="card-body">
                             <h5 class="card-title">Today</h5>
-                            <p class="card-text">
+                            <div class="card-text">
                                 <table class="table">
                                     <thead class="thead-dark">
                                         <tr>
@@ -151,7 +151,7 @@
                                 <ul>
                                     <li>{{latest_date}}</li>
                                 </ul>
-                            </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -159,9 +159,9 @@
                     <div class="card">
                         <div class="card-body">
                             <h5 class="card-title">Quad Outlook</h5>
-                            <p class="card-text">
+                            <div class="card-text">
                                 <canvas id="quad_updates"></canvas>
-                            </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -171,9 +171,9 @@
                     <div class="card">
                         <div class="card-body">
                             <h5 class="card-title">Quad 1 Allocation Performance This Quarter</h5>
-                            <p class="card-text">
+                            <div class="card-text">
                                 <canvas id="quad_performance_1"></canvas>
-                            </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -181,9 +181,9 @@
                     <div class="card">
                         <div class="card-body">
                             <h5 class="card-title">Quad 2 Allocation Performance This Quarter</h5>
-                            <p class="card-text">
+                            <div class="card-text">
                                 <canvas id="quad_performance_2"></canvas>
-                            </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -193,9 +193,9 @@
                     <div class="card">
                         <div class="card-body">
                             <h5 class="card-title">Quad 3 Allocation Performance This Quarter</h5>
-                            <p class="card-text">
+                            <div class="card-text">
                                 <canvas id="quad_performance_3"></canvas>
-                            </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -203,9 +203,9 @@
                     <div class="card">
                         <div class="card-body">
                             <h5 class="card-title">Quad 4 Allocation Performance This Quarter</h5>
-                            <p class="card-text">
+                            <div class="card-text">
                                 <canvas id="quad_performance_4"></canvas>
-                            </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -216,7 +216,7 @@
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Commitment of Traders - Non-commercial Net Long Positioning - {{latest_cot_date}}</h5>
-                        <p class="card-text">
+                        <div class="card-text">
                             <table class="table table-striped table-bordered" id="cftc-cot">
                                 <thead class="thead-dark">
                                     <tr>
@@ -266,7 +266,7 @@
                                     {% endfor %}
                                 </tbody>
                             </table>
-                        </p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -274,7 +274,7 @@
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">{{data_updated}} EST</h5>
-                        <p class="card-text">
+                        <div class="card-text">
                             <table class="table table-striped table-bordered" id="symbol-list">
                                 <thead class="thead-dark">
                                     <tr>
@@ -309,7 +309,7 @@
                                     {% endfor %}
                                 </tbody>
                             </table>
-                        </p>
+                        </div>
                     </div>
                 </div>
             </div>
