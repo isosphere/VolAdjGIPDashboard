@@ -270,7 +270,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         performance_change[quad] = round(100*(current_performance / prior_performance - 1), ndigits=1)
         
         # fix for negative comparisons showing positive change
-        if current_performance < prior_performance and performance_change[quad] > 0:
+        if (current_performance < prior_performance and performance_change[quad] > 0) or (current_performance > prior_performance and performance_change[quad] < 0):
             performance_change[quad] *= -1
 
     return render(request, 'UserInterface/index.htm', {
