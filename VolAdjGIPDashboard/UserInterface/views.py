@@ -267,11 +267,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         quad = quad_ticker_lookup[lookup]
         current_performance = quad_returns.get(label=lookup, data_end_date=latest_performance).score
         prior_performance = quad_returns.exclude(data_end_date=latest_performance).filter(label=lookup).latest('data_end_date').score
-        performance_change[quad] = round(100*(current_performance / prior_performance - 1), ndigits=1)
-        
-        # fix for negative comparisons showing positive change
-        if (current_performance < prior_performance and performance_change[quad] > 0) or (current_performance > prior_performance and performance_change[quad] < 0):
-            performance_change[quad] *= -1
+        performance_change[quad] = round(100*(current_performance - prior_performance), ndigits=1)
 
     return render(request, 'UserInterface/index.htm', {
         'current_quad_return': current_quad_return,
