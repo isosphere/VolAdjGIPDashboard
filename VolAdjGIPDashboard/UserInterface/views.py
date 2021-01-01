@@ -52,7 +52,7 @@ def quad_performance(request, label):
         'prior_quad_performance': prior_quad_performance
     })
 
-def all_symbol_summary(quad_allocation, latest_date,  latest_rate):
+def all_symbol_summary(quad_allocation, latest_date):
     symbol_values = dict()
 
     all_symbols = list()
@@ -100,7 +100,6 @@ def all_symbol_summary(quad_allocation, latest_date,  latest_rate):
                 round(last_week_val * ( 1 + last_week_vol), 2),
                 int(round(100*(symbol_data.close_price - last_week_val*(1 - last_week_vol)) / ( last_week_val * ( 1 + last_week_vol) - last_week_val * ( 1 - last_week_vol)), 0)),
                 '--.--' if not current_performance else round(current_performance, 2),
-
             )
         else:
             symbol_values[symbol] = (
@@ -112,16 +111,55 @@ def all_symbol_summary(quad_allocation, latest_date,  latest_rate):
                 '--.--' if not current_performance else round(current_performance, 2),
             )
 
-    symbol_values["USDCAD"] = (
-        latest_rate,
-        "--.--",
-        "--.--",
-        "--.--",
-        "--.--",
-        "0.00"
-    )
-
     return symbol_values
+
+
+def quad_performance_summary(quad_allocation, prior_quad_end_date, current_quad_start):
+    current_quad_return = dict()
+    prior_quad_return = dict()
+
+    for quad in quad_allocation:
+        try_date = datetime.date.today()
+        attempts = 7
+
+        while True:
+            try:
+                current_quad_return[quad] = list(YahooHistory.quad_return(
+                    tickers=quad_allocation[quad], 
+                    date_within_quad=try_date
+                ))
+
+                current_quad_return[quad].append(round(
+                    current_quad_return[quad][0]/current_quad_return[quad][1],
+                ndigits=1))
+
+                current_quad_return[quad][0] = round(current_quad_return[quad][0]*100, ndigits=1)
+                current_quad_return[quad][1] = round(current_quad_return[quad][1]*100, ndigits=1)
+
+                prior_quad_return[quad] = list(YahooHistory.quad_return(
+                    tickers=quad_allocation[quad], 
+                    date_within_quad=prior_quad_end_date
+                ))
+
+                prior_quad_return[quad].append(round(prior_quad_return[quad][0]/prior_quad_return[quad][1], ndigits=1))
+
+                prior_quad_return[quad][0] = round(prior_quad_return[quad][0]*100, ndigits=1)
+                prior_quad_return[quad][1] = round(prior_quad_return[quad][1]*100, ndigits=1)
+
+                break
+        
+            except YahooHistory.DoesNotExist:
+                try_date -= datetime.timedelta(days=1)
+                attempts -= 1
+                if attempts == 0:
+                    current_quad_return[quad] = "N/A", "N/A"
+                    break
+
+            except QuadForecasts.DoesNotExist:
+                current_quad_return[quad] = "N/A", "N/A"
+                break
+    
+    return current_quad_return, prior_quad_return
 
 
 def index(request, default_net_liquidating_value=10000, lookback=52, default_currency='USD'):
@@ -169,65 +207,32 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
 
     latest_date = YahooHistory.objects.latest('date').date
 
-    symbol_values = all_symbol_summary(quad_allocation, latest_date, latest_rate)
+    symbol_values = all_symbol_summary(quad_allocation, latest_date)
+    symbol_values["USDCAD"] = (
+        latest_rate,
+        "--.--",
+        "--.--",
+        "--.--",
+        "--.--",
+        "0.00"
+    )
 
     # for positioning, at the bottom of our page
     quad_allocations = dict()
+    for quad in quad_allocation:
+        quad_allocations[quad] = YahooHistory.equal_volatility_position(quad_allocation[quad], target_value=net_liquidating_value)
 
     # Quad Return Calculation
     current_quad_forecast = QuadForecasts.objects.filter(quarter_end_date=latest_date + pd.tseries.offsets.QuarterEnd(n=0)).latest('date')
     current_quad, quarter_end_date = current_quad_forecast.quad, current_quad_forecast.quarter_end_date
-
-    current_quad_return = dict()
-    prior_quad_return = dict()
     
     data_updated = YahooHistory.objects.latest('updated').updated
     prior_quad_end_date = (quarter_end_date - pd.tseries.offsets.QuarterEnd(n=1)).date()
     prior_quad_start = (prior_quad_end_date - pd.tseries.offsets.QuarterEnd(n=1) + datetime.timedelta(days=1)).date()
     current_quad_start = prior_quad_end_date + datetime.timedelta(days=1)
 
-    for quad in quad_allocation:
-        try_date = datetime.date.today()
-        attempts = 7
+    current_quad_return, prior_quad_return = quad_performance_summary(quad_allocation, prior_quad_end_date, current_quad_start)
 
-        while True:
-            try:
-                current_quad_return[quad] = list(YahooHistory.quad_return(
-                    tickers=quad_allocation[quad], 
-                    date_within_quad=try_date
-                ))
-
-                current_quad_return[quad].append(round(
-                    current_quad_return[quad][0]/current_quad_return[quad][1],
-                ndigits=1))
-
-                current_quad_return[quad][0] = round(current_quad_return[quad][0]*100, ndigits=1)
-                current_quad_return[quad][1] = round(current_quad_return[quad][1]*100, ndigits=1)
-
-                prior_quad_return[quad] = list(YahooHistory.quad_return(
-                    tickers=quad_allocation[quad], 
-                    date_within_quad=prior_quad_end_date
-                ))
-
-                prior_quad_return[quad].append(round(prior_quad_return[quad][0]/prior_quad_return[quad][1], ndigits=1))
-
-                prior_quad_return[quad][0] = round(prior_quad_return[quad][0]*100, ndigits=1)
-                prior_quad_return[quad][1] = round(prior_quad_return[quad][1]*100, ndigits=1)
-
-                break
-            except YahooHistory.DoesNotExist:
-                try_date -= datetime.timedelta(days=1)
-                attempts -= 1
-                if attempts == 0:
-                    current_quad_return[quad] = "N/A", "N/A"
-                    break     
-
-            except QuadForecasts.DoesNotExist:
-                current_quad_return[quad] = "N/A", "N/A"
-                break
-
-        quad_allocations[quad] = YahooHistory.equal_volatility_position(quad_allocation[quad], target_value=net_liquidating_value)
-    
     try:
         prior_quad = QuadReturn.objects.filter(quarter_end_date=prior_quad_end_date).latest('quarter_end_date', 'data_end_date')
         prior_quad_end = current_quad_start - datetime.timedelta(days=1)
