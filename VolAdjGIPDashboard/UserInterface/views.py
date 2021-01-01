@@ -52,52 +52,8 @@ def quad_performance(request, label):
         'prior_quad_performance': prior_quad_performance
     })
 
-def index(request, default_net_liquidating_value=10000, lookback=52, default_currency='USD'):
-    # Commitment of Traders
-    latest_cot_date = CommitmentOfTraders.objects.latest('date').date
-    cot_data = CommitmentOfTraders.objects.filter(date=latest_cot_date).order_by('symbol')
-
-    # For our little 4-quad chart
-    current_date = datetime.date.today()
-    quarter_int = (current_date.month - 1) // 3 + 1 
-    quarter_date = datetime.date(current_date.year, 1, 1) + pd.offsets.QuarterEnd(n=1)*quarter_int
-
-    quad_guesses = QuadForecasts.objects.filter(quarter_end_date=quarter_date).order_by('-date')[:3].values_list('date', 'gdp_roc', 'cpi_roc')
-
-    # Position sizing inputs
-    net_liquidating_value = request.POST.get('value', default_net_liquidating_value)
-    currency = request.POST.get('currency', default_currency)
-
-    if currency not in ('USD', 'CAD'):
-        currency = default_currency
-        messages.error(request, f"The currency you specified is not supported, so you get {default_currency} instead.")
-    
-    try:
-        net_liquidating_value = int(net_liquidating_value)
-    except ValueError:
-        net_liquidating_value = default_net_liquidating_value
-        messages.error(request, f"The net liquidating value you specified was invalid, so you get {default_net_liquidating_value} instead.")
-    
-    # Price and Standard Move Table
-    latest_rate = AlphaVantageHistory.objects.filter(ticker='USD.CAD').latest('date').close_price
-    if currency == 'CAD':
-        net_liquidating_value /= latest_rate
-
-    quad_allocation = {
-        1: ['QQQ',],
-        2: ['XLF', 'XLI', 'QQQ'],
-        3: ['GLD',],
-        4: ['XLU', 'TLT', 'UUP']
-    }
-
-    daily_return = dict()
-    for quad in quad_allocation:
-        current_daily_return = YahooHistory.daily_return(quad_allocation[quad])
-        daily_return[quad] = current_daily_return*100 if current_daily_return is not None else None
-
+def all_symbol_summary(quad_allocation, latest_date,  latest_rate):
     symbol_values = dict()
-
-    latest_date = YahooHistory.objects.latest('date').date
 
     all_symbols = list()
     for quad in quad_allocation:
@@ -165,6 +121,56 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         "0.00"
     )
 
+    return symbol_values
+
+
+def index(request, default_net_liquidating_value=10000, lookback=52, default_currency='USD'):
+    # Commitment of Traders
+    latest_cot_date = CommitmentOfTraders.objects.latest('date').date
+    cot_data = CommitmentOfTraders.objects.filter(date=latest_cot_date).order_by('symbol')
+
+    # For our little 4-quad chart
+    current_date = datetime.date.today()
+    quarter_int = (current_date.month - 1) // 3 + 1 
+    quarter_date = datetime.date(current_date.year, 1, 1) + pd.offsets.QuarterEnd(n=1)*quarter_int
+
+    quad_guesses = QuadForecasts.objects.filter(quarter_end_date=quarter_date).order_by('-date')[:3].values_list('date', 'gdp_roc', 'cpi_roc')
+
+    # Position sizing inputs
+    net_liquidating_value = request.POST.get('value', default_net_liquidating_value)
+    currency = request.POST.get('currency', default_currency)
+
+    if currency not in ('USD', 'CAD'):
+        currency = default_currency
+        messages.error(request, f"The currency you specified is not supported, so you get {default_currency} instead.")
+    
+    try:
+        net_liquidating_value = int(net_liquidating_value)
+    except ValueError:
+        net_liquidating_value = default_net_liquidating_value
+        messages.error(request, f"The net liquidating value you specified was invalid, so you get {default_net_liquidating_value} instead.")
+    
+    # Price and Standard Move Table
+    latest_rate = AlphaVantageHistory.objects.filter(ticker='USD.CAD').latest('date').close_price
+    if currency == 'CAD':
+        net_liquidating_value /= latest_rate
+
+    quad_allocation = {
+        1: ['QQQ',],
+        2: ['XLF', 'XLI', 'QQQ'],
+        3: ['GLD',],
+        4: ['XLU', 'TLT', 'UUP']
+    }
+
+    daily_return = dict()
+    for quad in quad_allocation:
+        current_daily_return = YahooHistory.daily_return(quad_allocation[quad])
+        daily_return[quad] = current_daily_return*100 if current_daily_return is not None else None
+
+    latest_date = YahooHistory.objects.latest('date').date
+
+    symbol_values = all_symbol_summary(quad_allocation, latest_date, latest_rate)
+
     # for positioning, at the bottom of our page
     quad_allocations = dict()
 
@@ -203,7 +209,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
                     date_within_quad=prior_quad_end_date
                 ))
 
-                prior_quad_return[quad].append(round(prior_quad_return[quad][0]/prior_quad_return[quad][1], ndigits=1))                
+                prior_quad_return[quad].append(round(prior_quad_return[quad][0]/prior_quad_return[quad][1], ndigits=1))
 
                 prior_quad_return[quad][0] = round(prior_quad_return[quad][0]*100, ndigits=1)
                 prior_quad_return[quad][1] = round(prior_quad_return[quad][1]*100, ndigits=1)
