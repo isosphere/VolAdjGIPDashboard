@@ -11,7 +11,7 @@ from django.shortcuts import render
 from django.http import Http404
 
 def quad_performance(request, label):
-    label = label.replace(' ', '').upper()
+    label = label.replace(' ', '')
     latest_date = YahooHistory.objects.latest('date').date
     
     current_quad_forecast = QuadForecasts.objects.filter(quarter_end_date=latest_date + pd.tseries.offsets.QuarterEnd(n=0)).latest('date')
@@ -25,7 +25,7 @@ def quad_performance(request, label):
     prior_quad_returns = QuadReturn.objects.filter(quarter_end_date=prior_quad_end_date, label=label).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev'))
 
     if not quad_returns:
-        raise Http404("Label does not exist.")
+        raise Http404(f"Label {label} does not exist.")
 
     quad_performance = list()
     for ticker_lookup, date, score in quad_returns.values_list('label', 'data_end_date', 'score'):
@@ -77,7 +77,8 @@ def all_symbol_summary(quad_allocation, latest_date):
                     '--.--',
                     '--.--',
                     '--.--',
-                    '--.--'
+                    '--.--',
+                    'YahooHistory_' + symbol
                 )
                 continue
 
@@ -88,7 +89,7 @@ def all_symbol_summary(quad_allocation, latest_date):
 
         # get realized vol as of last week - don't let the buy/sell targets move with current vol
         last_week_vol = YahooHistory.objects.get(ticker=symbol, date=last_week_date).realized_volatility
-        current_performance = QuadReturn.objects.filter(label=symbol).latest('quarter_end_date', 'data_end_date')
+        current_performance = QuadReturn.objects.filter(label=f"YahooHistory_{symbol}").latest('quarter_end_date', 'data_end_date')
         if current_performance:
             current_performance = current_performance.quad_return / current_performance.quad_stdev
 
@@ -100,6 +101,7 @@ def all_symbol_summary(quad_allocation, latest_date):
                 round(last_week_val * ( 1 + last_week_vol), 2),
                 int(round(100*(symbol_data.close_price - last_week_val*(1 - last_week_vol)) / ( last_week_val * ( 1 + last_week_vol) - last_week_val * ( 1 - last_week_vol)), 0)),
                 '--.--' if not current_performance else round(current_performance, 2),
+                'YahooHistory_' + symbol
             )
         else:
             symbol_values[symbol] = (
@@ -109,6 +111,7 @@ def all_symbol_summary(quad_allocation, latest_date):
                 '--.--',
                 '--.--',
                 '--.--' if not current_performance else round(current_performance, 2),
+                'YahooHistory_' + symbol
             )
 
     return symbol_values
@@ -214,7 +217,8 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         "--.--",
         "--.--",
         "--.--",
-        "0.00"
+        "0.00",
+        'AlphaVantageHistory_USD.CAD'
     )
 
     # for positioning, at the bottom of our page
@@ -242,7 +246,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     net_liquidating_value = round(net_liquidating_value, 0)
 
     # time series data for quad return charts
-    quad_labels = ('QQQ', 'QQQ,XLF,XLI', 'GLD', 'TLT,UUP,XLU')
+    quad_labels = ('YahooHistory_QQQ', 'YahooHistory_QQQ,XLF,XLI', 'YahooHistory_GLD', 'YahooHistory_TLT,UUP,XLU')
     quad_returns = QuadReturn.objects.filter(quarter_end_date=quarter_end_date, label__in=quad_labels).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev'))
     prior_quad_returns = QuadReturn.objects.filter(quarter_end_date=prior_quad_end_date, label__in=quad_labels).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev'))
 
@@ -250,7 +254,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     for quad in quad_allocation:
         tickers = quad_allocation[quad]
         tickers.sort()
-        expected_label = ','.join(tickers).upper()
+        expected_label = "YahooHistory_" + ','.join(tickers).upper()
 
         quad_ticker_lookup[expected_label] = quad
     

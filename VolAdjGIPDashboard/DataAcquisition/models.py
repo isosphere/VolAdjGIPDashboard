@@ -27,30 +27,117 @@ class QuadReturn(models.Model):
     quad_return = models.FloatField()
     quad_stdev = models.FloatField()
 
+    class Meta:
+        unique_together = [['quarter_end_date', 'data_start_date', 'data_end_date', 'label']]
+
+
+class SecurityHistory(models.Model):
+    date = models.DateField()
+    ticker = models.CharField(max_length=12)
+    close_price = models.FloatField()
+    updated = models.DateTimeField(auto_now=True)
+    realized_volatility = models.FloatField(null=True) 
+
     @classmethod
-    def update(cls, first_date=None, ticker=None):
-        logger = logging.getLogger('QuadReturn.update')
-        if ticker is None:
-            tickers = [
-                ['QQQ',],
-                ['XLF', 'XLI', 'QQQ'],
-                ['GLD',],
-                ['XLU', 'TLT', 'UUP']
-            ] + list(map(lambda x: [x.upper()], YahooHistory.objects.values_list('ticker', flat=True).distinct()))
-        else:
+    def quad_return(cls, tickers, date_within_quad):
+        tickers.sort() # make the list deterministic for the same input (used for label later)
+
+        quarter_end_date = (date_within_quad + pd.tseries.offsets.QuarterEnd(n=0)).date()
+        current_quad = QuadForecasts.objects.filter(quarter_end_date=quarter_end_date).latest('date')
+        #print(f"current_quad quarter={current_quad.quarter_end_date} date={current_quad.date}")
+
+        # this is the last known date for the prior quad
+        start_date = (date_within_quad - pd.tseries.offsets.QuarterEnd(1) + datetime.timedelta(days=1)).date()
+        #print(f"last known date for prior quad: {start_date}")
+        
+        # this is when we started this quad
+        history = cls.objects.filter(ticker__in=tickers, date__gte=start_date, date__lte=date_within_quad).order_by('date')
+
+        try:
+            cached = QuadReturn.objects.filter(
+                quarter_end_date = current_quad.quarter_end_date,
+                data_start_date = start_date,
+                data_end_date = date_within_quad, 
+                label = cls.__name__ + '_' + ','.join(tickers).upper(),
+                prices_updated__gte = history.latest('updated').updated
+            ).latest('prices_updated')
+
+            return cached.quad_return, cached.quad_stdev
+
+        except QuadReturn.DoesNotExist:
+            pass
+
+        distinct_dates = history.values('date').distinct().values_list('date', flat=True)
+        
+        prior_positioning = None
+        prior_cost_basis = dict()
+        start_market_value = 10000
+        market_value = start_market_value
+
+        market_value_history = [start_market_value,]
+        
+        for date in distinct_dates:
+            # liquidate
+            if prior_positioning is not None:
+                for leg in prior_positioning:
+                    market_value += prior_positioning[leg]*(history.get(ticker=leg, date=date).close_price - prior_cost_basis[leg])
+            
+            market_value_history.append(market_value)
+
+            # accumulate
+            new_positioning = cls.equal_volatility_position(tickers, max_date=date, target_value=market_value)
+            
+            prior_cost_basis = dict()
+            prior_positioning = new_positioning.copy()
+
+            for leg in new_positioning:
+                prior_cost_basis[leg] = history.get(ticker=leg, date=date).close_price
+        
+        end_market_value = market_value
+
+        quad_return = end_market_value / start_market_value - 1
+        quad_stdev = pd.DataFrame(market_value_history).pct_change().std(ddof=1).values[0]
+        
+        QuadReturn.objects.filter(
+            quarter_end_date = current_quad.quarter_end_date,
+            data_start_date = start_date, 
+            data_end_date = date_within_quad, 
+            label = cls.__name__ + '_' + ','.join(tickers).upper(),
+        ).delete() # if we had an older one, kill it
+        
+        cached_return = QuadReturn(
+            quarter_end_date = current_quad.quarter_end_date, 
+            data_end_date = date_within_quad,
+            data_start_date = start_date,
+            label = cls.__name__ + '_' + ','.join(tickers).upper(),
+            prices_updated = history.latest('updated').updated,
+            quad_return = quad_return,
+            quad_stdev = quad_stdev 
+        )
+        cached_return.save()
+        
+        return quad_return, quad_stdev
+
+    @classmethod
+    def update_quad_return(cls, first_date=None, ticker=None, tickers=None):
+        logger = logging.getLogger('SecurityHistory.update_quad_return')
+        
+        if ticker is None and tickers is None:
+            tickers = list(map(lambda x: [x.upper()], cls.objects.values_list('ticker', flat=True).distinct()))
+        elif ticker is not None:
             tickers = [[ticker,]]
 
-        latest_date = YahooHistory.objects.latest('date').date
-        first_date = first_date if first_date is not None else YahooHistory.objects.earliest('date').date
+        latest_date = cls.objects.latest('date').date
+        first_date = first_date if first_date is not None else cls.objects.earliest('date').date
 
         for labels in tickers:
             sortable = labels
             sortable.sort()
-            modified_label = ','.join(sortable)
+            modified_label =  cls.__name__ + "_" + ','.join(sortable)
 
             try:
-                existing_data_start = cls.objects.filter(label=modified_label).latest('data_end_date')
-            except cls.DoesNotExist:
+                existing_data_start = QuadReturn.objects.filter(label=modified_label).latest('data_end_date')
+            except QuadReturn.DoesNotExist:
                 existing_data_start = None
             
             try_date = first_date if not existing_data_start else existing_data_start.data_end_date
@@ -60,7 +147,7 @@ class QuadReturn(models.Model):
             while try_date <= latest_date:
                 logger.debug(f"Tickers={labels} date = {try_date} ... ")
                 try:
-                    YahooHistory.quad_return(
+                    cls.quad_return(
                         tickers=labels,
                         date_within_quad=try_date
                     )
@@ -68,8 +155,8 @@ class QuadReturn(models.Model):
 
                     try_date += datetime.timedelta(days=1)
 
-                except YahooHistory.DoesNotExist:
-                    logger.debug("No YahooHistory instance for that date.")
+                except cls.DoesNotExist:
+                    logger.debug("No data instance for that date.")
                     try_date += datetime.timedelta(days=1)
 
                 except QuadForecasts.DoesNotExist:
@@ -84,20 +171,64 @@ class QuadReturn(models.Model):
                     logger.debug("Insufficient data for calculation.")
                     try_date += datetime.timedelta(days=1)
 
-    class Meta:
-        unique_together = [['quarter_end_date', 'data_start_date', 'data_end_date', 'label']]
-    
-
-class SecurityHistory(models.Model):
-    date = models.DateField()
-    ticker = models.CharField(max_length=12)
-    close_price = models.FloatField()
-    updated = models.DateTimeField(auto_now=True)
-    realized_volatility = models.FloatField(null=True) 
-
     @classmethod
     def update(cls, tickers=None, clobber=False, start=None, end=None):
         pass
+
+    @classmethod
+    def equal_volatility_position(cls, tickers, lookback=28, target_value=10000, max_date=None):
+        logger = logging.getLogger('SecurityHistory.equal_volatility_position')
+        logger.debug(f"function triggered for tickers=[{tickers}], lookback={lookback}, target_value={target_value}, max_date={max_date}")
+
+        standard_move = dict()
+        last_price_lookup = dict()
+
+        controlling_leg = None
+        max_price = None
+
+        dataframe = cls.dataframe(max_date=max_date, tickers=tickers, lookback=lookback)
+
+        # compute realized vol
+        dataframe["log_return"] = dataframe.groupby(level='ticker').close_price.apply(np.log) - dataframe.groupby(level='ticker').close_price.shift(1).apply(np.log)
+        dataframe["realized_vol"] = dataframe.groupby(level='ticker').log_return.rolling(lookback).std(ddof=0).droplevel(0)
+
+        for security in tickers:
+            subset = dataframe[dataframe.index.get_level_values('ticker') == security]
+            latest_close, realized_vol = subset.iloc[-1].close_price, subset.iloc[-1].realized_vol
+            logger.debug(f"{security} close={latest_close}, realized_vol={realized_vol}")
+            
+            standard_move[security] = realized_vol*latest_close
+            last_price_lookup[security] = latest_close
+
+            if max_price is None or latest_close > max_price:
+                controlling_leg = security
+                max_price = latest_close
+
+        logger.debug(f"Controlling leg (most expensive) is {controlling_leg}, with a standard move of ${standard_move[controlling_leg]:2f}.")
+
+        leg_ratios = dict()
+        for leg in set(tickers).symmetric_difference({controlling_leg}):
+            leg_ratios[leg] = standard_move[controlling_leg] / standard_move[leg]
+            logger.debug(f"leg={leg}, standard move=${standard_move[leg]:2f} ratio={leg_ratios[leg]}")
+        
+        base_cost = last_price_lookup[controlling_leg]
+        for leg in leg_ratios:
+            base_cost += last_price_lookup[leg] * leg_ratios[leg]
+
+        logger.debug(f"Base cost: ${base_cost:.2f}")
+
+        multiplier = target_value // base_cost
+        
+        positioning = dict()
+        positioning[controlling_leg] = int(multiplier)
+        actual_cost = int(multiplier)*last_price_lookup[controlling_leg]
+        for leg in leg_ratios:
+            positioning[leg] = math.floor(multiplier*leg_ratios[leg])
+            actual_cost += positioning[leg]*last_price_lookup[leg]
+
+        logger.debug(f"Actual cost: ${actual_cost:.2f}")
+        
+        return positioning
 
     @classmethod
     def dataframe(cls, max_date=None, tickers=None, lookback=None):
@@ -237,62 +368,6 @@ class YahooHistory(SecurityHistory):
                 obj.save()
 
     @classmethod
-    def equal_volatility_position(cls, tickers, lookback=28, target_value=10000, max_date=None):
-        logger = logging.getLogger('YahooHistory.equal_volatility_position')
-        logger.debug(f"function triggered for tickers=[{tickers}], lookback={lookback}, target_value={target_value}, max_date={max_date}")
-
-        standard_move = dict()
-        last_price_lookup = dict()
-
-        controlling_leg = None
-        max_price = None
-
-        dataframe = cls.dataframe(max_date=max_date, tickers=tickers, lookback=lookback)
-
-        # compute realized vol
-        dataframe["log_return"] = dataframe.groupby(level='ticker').close_price.apply(np.log) - dataframe.groupby(level='ticker').close_price.shift(1).apply(np.log)
-        dataframe["realized_vol"] = dataframe.groupby(level='ticker').log_return.rolling(lookback).std(ddof=0).droplevel(0)
-
-        for security in tickers:
-            subset = dataframe[dataframe.index.get_level_values('ticker') == security]
-            latest_close, realized_vol = subset.iloc[-1].close_price, subset.iloc[-1].realized_vol
-            logger.debug(f"{security} close={latest_close}, realized_vol={realized_vol}")
-            
-            standard_move[security] = realized_vol*latest_close
-            last_price_lookup[security] = latest_close
-
-            if max_price is None or latest_close > max_price:
-                controlling_leg = security
-                max_price = latest_close
-
-        logger.debug(f"Controlling leg (most expensive) is {controlling_leg}, with a standard move of ${standard_move[controlling_leg]:2f}.")
-
-        leg_ratios = dict()
-        for leg in set(tickers).symmetric_difference({controlling_leg}):
-            leg_ratios[leg] = standard_move[controlling_leg] / standard_move[leg]
-            logger.debug(f"leg={leg}, standard move=${standard_move[leg]:2f} ratio={leg_ratios[leg]}")
-        
-        base_cost = last_price_lookup[controlling_leg]
-        for leg in leg_ratios:
-            base_cost += last_price_lookup[leg] * leg_ratios[leg]
-
-        logger.debug(f"Base cost: ${base_cost:.2f}")
-
-        multiplier = target_value // base_cost
-        
-        positioning = dict()
-        positioning[controlling_leg] = int(multiplier)
-        actual_cost = int(multiplier)*last_price_lookup[controlling_leg]
-        for leg in leg_ratios:
-            positioning[leg] = math.floor(multiplier*leg_ratios[leg])
-            actual_cost += positioning[leg]*last_price_lookup[leg]
-
-        logger.debug(f"Actual cost: ${actual_cost:.2f}")
-        
-        return positioning
-
-
-    @classmethod
     def daily_return(cls, tickers):
         date_set = cls.objects.order_by('-date').values_list('date', flat=True).distinct()[:2] # latest two dates
         history = cls.objects.filter(ticker__in=tickers, date__in=date_set).order_by('date')
@@ -329,87 +404,6 @@ class YahooHistory(SecurityHistory):
         daily_return = end_market_value / start_market_value - 1
 
         return -daily_return
-
-
-    @classmethod
-    def quad_return(cls, tickers, date_within_quad):
-        tickers.sort() # make the list deterministic for the same input (used for label later)
-
-        quarter_end_date = (date_within_quad + pd.tseries.offsets.QuarterEnd(n=0)).date()
-        current_quad = QuadForecasts.objects.filter(quarter_end_date=quarter_end_date).latest('date')
-        #print(f"current_quad quarter={current_quad.quarter_end_date} date={current_quad.date}")
-
-        # this is the last known date for the prior quad
-        start_date = (date_within_quad - pd.tseries.offsets.QuarterEnd(1) + datetime.timedelta(days=1)).date()
-        #print(f"last known date for prior quad: {start_date}")
-        
-        # this is when we started this quad
-        history = cls.objects.filter(ticker__in=tickers, date__gte=start_date, date__lte=date_within_quad).order_by('date')
-
-        try:
-            cached = QuadReturn.objects.filter(
-                quarter_end_date = current_quad.quarter_end_date,
-                data_start_date = start_date,
-                data_end_date = date_within_quad, 
-                label = ','.join(tickers).upper(),
-                prices_updated__gte = history.latest('updated').updated
-            ).latest('prices_updated')
-
-            return cached.quad_return, cached.quad_stdev
-
-        except QuadReturn.DoesNotExist:
-            pass
-
-        distinct_dates = history.values('date').distinct().values_list('date', flat=True)
-        
-        prior_positioning = None
-        prior_cost_basis = dict()
-        start_market_value = 10000
-        market_value = start_market_value
-
-        market_value_history = [start_market_value,]
-        
-        for date in distinct_dates:
-            # liquidate
-            if prior_positioning is not None:
-                for leg in prior_positioning:
-                    market_value += prior_positioning[leg]*(history.get(ticker=leg, date=date).close_price - prior_cost_basis[leg])
-            
-            market_value_history.append(market_value)
-
-            # accumulate
-            new_positioning = cls.equal_volatility_position(tickers, max_date=date, target_value=market_value)
-            
-            prior_cost_basis = dict()
-            prior_positioning = new_positioning.copy()
-
-            for leg in new_positioning:
-                prior_cost_basis[leg] = history.get(ticker=leg, date=date).close_price
-        
-        end_market_value = market_value
-
-        quad_return = end_market_value / start_market_value - 1
-        quad_stdev = pd.DataFrame(market_value_history).pct_change().std(ddof=1).values[0]
-        
-        QuadReturn.objects.filter(
-            quarter_end_date = current_quad.quarter_end_date,
-            data_start_date = start_date, 
-            data_end_date = date_within_quad, 
-            label = ','.join(tickers).upper(),
-        ).delete() # if we had an older one, kill it
-        
-        cached_return = QuadReturn(
-            quarter_end_date = current_quad.quarter_end_date, 
-            data_end_date = date_within_quad,
-            data_start_date = start_date,
-            label = ','.join(tickers).upper(),
-            prices_updated = history.latest('updated').updated,
-            quad_return = quad_return,
-            quad_stdev = quad_stdev 
-        )
-        cached_return.save()
-        
-        return quad_return, quad_stdev
 
     def __str__(self):
         return f"{self.ticker} on {self.date} was {self.close_price} with 1-week vol {self.realized_volatility}"
