@@ -55,64 +55,69 @@ def quad_performance(request, label):
 def all_symbol_summary(quad_allocation, latest_date):
     symbol_values = dict()
 
-    all_symbols = list()
-    for quad in quad_allocation:
-        for symbol in quad_allocation[quad]:
-            if symbol not in all_symbols:
-                all_symbols.append(symbol)
+    for group in (YahooHistory, AlphaVantageHistory):
+        if group.__name__ == 'YahooHistory':
+            all_symbols = list()
+            for quad in quad_allocation:
+                for symbol in quad_allocation[quad]:
+                    if symbol not in all_symbols:
+                        all_symbols.append(symbol)
 
-    all_symbols += ['XLV', 'SHY', 'EDV', 'IWM', 'PSP', 'RSP', 'JNK', 'FXB', 'EWG', 'EWA', 'ITB', 'TIP', 'VTI', 'BND', 'XLE']
-    all_symbols.sort()
-
-    for symbol in all_symbols:
-        try:
-            symbol_data = YahooHistory.objects.get(ticker=symbol, date=latest_date)
-        except YahooHistory.DoesNotExist:
-            YahooHistory.update(tickers=all_symbols)
-            try:
-                symbol_data = YahooHistory.objects.get(ticker=symbol, date=latest_date)
-            except YahooHistory.DoesNotExist:
-                symbol_values[symbol] = (
-                    'N/A',
-                    '--.--',
-                    '--.--',
-                    '--.--',
-                    '--.--',
-                    'YahooHistory_' + symbol
-                )
-                continue
-
-        prior_week_ref = YahooHistory.objects.filter(ticker=symbol).latest('date').date - datetime.timedelta(weeks=1)
-        prior_week = prior_week_ref.isocalendar()[1]
-        last_week = YahooHistory.objects.filter(ticker=symbol, date__week=prior_week).latest('date')
-        last_week_date, last_week_val = last_week.date, last_week.close_price
-
-        # get realized vol as of last week - don't let the buy/sell targets move with current vol
-        last_week_vol = YahooHistory.objects.get(ticker=symbol, date=last_week_date).realized_volatility
-        current_performance = QuadReturn.objects.filter(label=f"YahooHistory_{symbol}").latest('quarter_end_date', 'data_end_date')
-        if current_performance:
-            current_performance = current_performance.quad_return / current_performance.quad_stdev
-
-        if last_week_vol is not None:
-            symbol_values[symbol] = (
-                round(symbol_data.close_price, 2), 
-                round(100*last_week_vol, 2), 
-                round(last_week_val * ( 1 - last_week_vol), 2),
-                round(last_week_val * ( 1 + last_week_vol), 2),
-                int(round(100*(symbol_data.close_price - last_week_val*(1 - last_week_vol)) / ( last_week_val * ( 1 + last_week_vol) - last_week_val * ( 1 - last_week_vol)), 0)),
-                '--.--' if not current_performance else round(current_performance, 2),
-                'YahooHistory_' + symbol
-            )
+            all_symbols += ['XLV', 'SHY', 'EDV', 'IWM', 'PSP', 'RSP', 'JNK', 'FXB', 'EWG', 'EWA', 'ITB', 'TIP', 'VTI', 'BND', 'XLE']
         else:
-            symbol_values[symbol] = (
-                round(symbol_data.close_price, 2), 
-                '--.--', 
-                '--.--',
-                '--.--',
-                '--.--',
-                '--.--' if not current_performance else round(current_performance, 2),
-                'YahooHistory_' + symbol
-            )
+            all_symbols = ['USD.CAD']
+        
+        all_symbols.sort()
+
+        for symbol in all_symbols:
+            try:
+                symbol_data = group.objects.get(ticker=symbol, date=latest_date)
+            except group.DoesNotExist:
+                group.update(tickers=all_symbols)
+                try:
+                    symbol_data = group.objects.get(ticker=symbol, date=latest_date)
+                except group.DoesNotExist:
+                    symbol_values[symbol] = (
+                        'N/A',
+                        '--.--',
+                        '--.--',
+                        '--.--',
+                        '--.--',
+                        group.__name__ + '_' + symbol
+                    )
+                    continue
+
+            prior_week_ref = group.objects.filter(ticker=symbol).latest('date').date - datetime.timedelta(weeks=1)
+            prior_week = prior_week_ref.isocalendar()[1]
+            last_week = group.objects.filter(ticker=symbol, date__week=prior_week).latest('date')
+            last_week_date, last_week_val = last_week.date, last_week.close_price
+
+            # get realized vol as of last week - don't let the buy/sell targets move with current vol
+            last_week_vol = group.objects.get(ticker=symbol, date=last_week_date).realized_volatility
+            current_performance = QuadReturn.objects.filter(label=f"{group.__name__}_{symbol}").latest('quarter_end_date', 'data_end_date')
+            if current_performance:
+                current_performance = current_performance.quad_return / current_performance.quad_stdev
+
+            if last_week_vol is not None:
+                symbol_values[symbol] = (
+                    round(symbol_data.close_price, 2), 
+                    round(100*last_week_vol, 2), 
+                    round(last_week_val * ( 1 - last_week_vol), 2),
+                    round(last_week_val * ( 1 + last_week_vol), 2),
+                    int(round(100*(symbol_data.close_price - last_week_val*(1 - last_week_vol)) / ( last_week_val * ( 1 + last_week_vol) - last_week_val * ( 1 - last_week_vol)), 0)),
+                    '--.--' if not current_performance else round(current_performance, 2),
+                    group.__name__ + '_' + symbol
+                )
+            else:
+                symbol_values[symbol] = (
+                    round(symbol_data.close_price, 2), 
+                    '--.--', 
+                    '--.--',
+                    '--.--',
+                    '--.--',
+                    '--.--' if not current_performance else round(current_performance, 2),
+                    group.__name__ + '_' + symbol
+                )
 
     return symbol_values
 
@@ -211,15 +216,6 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     latest_date = YahooHistory.objects.latest('date').date
 
     symbol_values = all_symbol_summary(quad_allocation, latest_date)
-    symbol_values["USDCAD"] = (
-        latest_rate,
-        "--.--",
-        "--.--",
-        "--.--",
-        "--.--",
-        "0.00",
-        'AlphaVantageHistory_USD.CAD'
-    )
 
     # for positioning, at the bottom of our page
     quad_allocations = dict()
