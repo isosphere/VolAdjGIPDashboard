@@ -9,4 +9,5 @@ class Command(BaseCommand):
         YahooHistory.update()
         YahooHistory.calculate_stats()
         AlphaVantageHistory.update()
+        AlphaVantageHistory.calculate_stats()
         QuadForecasts.update()
