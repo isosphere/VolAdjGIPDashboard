@@ -65,7 +65,7 @@ def all_symbol_summary(quad_allocation, latest_date):
 
             all_symbols += ['XLV', 'SHY', 'EDV', 'IWM', 'PSP', 'RSP', 'JNK', 'FXB', 'EWG', 'EWA', 'ITB', 'TIP', 'VTI', 'BND', 'XLE']
         else:
-            all_symbols = ['USD.CAD']
+            all_symbols = list(AlphaVantageHistory.objects.all().values_list('ticker', flat=True).distinct())
         
         all_symbols.sort()
 
