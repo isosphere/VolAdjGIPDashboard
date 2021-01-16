@@ -8,4 +8,4 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         YahooHistory.update_quad_return(tickers=[['QQQ',],['XLF', 'XLI', 'QQQ'],['GLD',],['XLU', 'TLT', 'UUP']])
         YahooHistory.update_quad_return()
-        AlphaVantageHistory.update_quad_return(ticker='USD.CAD')
+        AlphaVantageHistory.update_quad_return()
