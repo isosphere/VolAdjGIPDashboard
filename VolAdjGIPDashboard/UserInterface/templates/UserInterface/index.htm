@@ -143,6 +143,13 @@
                                         <td class="text-success">
                                         {% endif %}
                                         {{performance_change.4}}
+                                        {% elif quad == 'Market' %}
+                                        {% if performance_change.Market < 0 %}
+                                        <td class="text-danger">
+                                        {% else %}
+                                        <td class="text-success">
+                                        {% endif %}
+                                        {{performance_change.Market}}
                                         {% endif %}
                                         </td>
                                     </tr>
