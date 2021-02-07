@@ -73,19 +73,15 @@ def all_symbol_summary(quad_allocation, latest_date):
             try:
                 symbol_data = group.objects.get(ticker=symbol, date=latest_date)
             except group.DoesNotExist:
-                group.update(tickers=all_symbols)
-                try:
-                    symbol_data = group.objects.get(ticker=symbol, date=latest_date)
-                except group.DoesNotExist:
-                    symbol_values[symbol] = (
-                        'N/A',
-                        '--.--',
-                        '--.--',
-                        '--.--',
-                        '--.--',
-                        group.__name__ + '_' + symbol
-                    )
-                    continue
+                symbol_values[symbol] = (
+                    'N/A',
+                    '--.--',
+                    '--.--',
+                    '--.--',
+                    '--.--',
+                    group.__name__ + '_' + symbol
+                )
+                continue
 
             prior_week_ref = group.objects.filter(ticker=symbol).latest('date').date - datetime.timedelta(weeks=1)
             prior_week = prior_week_ref.isocalendar()[1]
