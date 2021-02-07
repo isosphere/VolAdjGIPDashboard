@@ -48,16 +48,18 @@ class SecurityHistory(models.Model):
 
         # this is the last known date for the prior quad
         start_date = (date_within_quad - pd.tseries.offsets.QuarterEnd(1) + datetime.timedelta(days=1)).date()
+        
         #print(f"last known date for prior quad: {start_date}")
         
         # this is when we started this quad
         history = cls.objects.filter(ticker__in=tickers, date__gte=start_date, date__lte=date_within_quad).order_by('date')
+        end_date = date_within_quad if date_within_quad < history.latest('date').date else history.latest('date').date
 
         try:
             cached = QuadReturn.objects.filter(
                 quarter_end_date = current_quad.quarter_end_date,
                 data_start_date = start_date,
-                data_end_date = date_within_quad, 
+                data_end_date = end_date, 
                 label = cls.__name__ + '_' + ','.join(tickers).upper(),
                 prices_updated__gte = history.latest('updated').updated
             ).latest('prices_updated')
@@ -101,13 +103,13 @@ class SecurityHistory(models.Model):
         QuadReturn.objects.filter(
             quarter_end_date = current_quad.quarter_end_date,
             data_start_date = start_date, 
-            data_end_date = date_within_quad, 
+            data_end_date = end_date, 
             label = cls.__name__ + '_' + ','.join(tickers).upper(),
         ).delete() # if we had an older one, kill it
         
         cached_return = QuadReturn(
             quarter_end_date = current_quad.quarter_end_date, 
-            data_end_date = date_within_quad,
+            data_end_date = end_date,
             data_start_date = start_date,
             label = cls.__name__ + '_' + ','.join(tickers).upper(),
             prices_updated = history.latest('updated').updated,
@@ -305,7 +307,11 @@ class AlphaVantageHistory(SecurityHistory):
             request_url = f"{base_url}&from_currency={from_currency}&to_currency={to_currency}&apikey={settings.ALPHAVENTAGE_KEY}"
 
             response = requests.get(request_url)
-            results = response.json()['Realtime Currency Exchange Rate']
+            try:
+                results = response.json()['Realtime Currency Exchange Rate']
+            except KeyError:
+                logger.error(f"Failed to fetch data for ticker: {ticker}")
+                continue
 
             updated, exchange_rate = parse(results['6. Last Refreshed']), results['5. Exchange Rate']
 

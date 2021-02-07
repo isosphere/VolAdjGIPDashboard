@@ -209,7 +209,8 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         1: ['QQQ',],
         2: ['XLF', 'XLI', 'QQQ'],
         3: ['GLD',],
-        4: ['XLU', 'TLT', 'UUP']
+        4: ['XLU', 'TLT', 'UUP'],
+        'Market': ['VTI',]
     }
 
     daily_return = dict()
@@ -246,7 +247,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     net_liquidating_value = round(net_liquidating_value, 0)
 
     # time series data for quad return charts
-    quad_labels = ('YahooHistory_QQQ', 'YahooHistory_QQQ,XLF,XLI', 'YahooHistory_GLD', 'YahooHistory_TLT,UUP,XLU')
+    quad_labels = ('YahooHistory_QQQ', 'YahooHistory_QQQ,XLF,XLI', 'YahooHistory_GLD', 'YahooHistory_TLT,UUP,XLU', 'YahooHistory_VTI')
     quad_returns = QuadReturn.objects.filter(quarter_end_date=quarter_end_date, label__in=quad_labels).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev'))
     prior_quad_returns = QuadReturn.objects.filter(quarter_end_date=prior_quad_end_date, label__in=quad_labels).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev'))
 
@@ -277,11 +278,11 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         prior_quad_performance[quad].append(((date-prior_quad_start).days, round(score, 2)))
 
     performance_change = dict()
-    latest_performance = quad_returns.latest('data_end_date').data_end_date
     for lookup in quad_ticker_lookup:
         quad = quad_ticker_lookup[lookup]
-        current_performance = quad_returns.get(label=lookup, data_end_date=latest_performance).score
-        prior_performance = quad_returns.exclude(data_end_date=latest_performance).filter(label=lookup).latest('data_end_date').score
+        current_performance = quad_returns.get(label=lookup, data_end_date=latest_date).score
+
+        prior_performance = quad_returns.exclude(data_end_date=latest_date).filter(label=lookup).latest('data_end_date').score
         performance_change[quad] = round(current_performance - prior_performance, ndigits=1)
 
     return render(request, 'UserInterface/index.htm', {
