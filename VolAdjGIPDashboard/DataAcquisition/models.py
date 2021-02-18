@@ -126,6 +126,8 @@ class SecurityHistory(models.Model):
         
         if ticker is None and tickers is None:
             tickers = list(map(lambda x: [x.upper()], cls.objects.values_list('ticker', flat=True).distinct()))
+            tickers.append(['QQQ', 'XLF', 'XLI'])
+            tickers.append(['TLT', 'UUP', 'XLU'])
         elif ticker is not None:
             tickers = [[ticker,]]
 
