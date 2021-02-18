@@ -130,6 +130,7 @@ class SecurityHistory(models.Model):
             tickers = [[ticker,]]
 
         latest_date = cls.objects.latest('date').date
+        full_run_flag = True if first_date is not None else False
         first_date = first_date if first_date is not None else cls.objects.earliest('date').date
 
         for labels in tickers:
@@ -142,7 +143,10 @@ class SecurityHistory(models.Model):
             except QuadReturn.DoesNotExist:
                 existing_data_start = None
             
+            if not full_run_flag:
             try_date = first_date if not existing_data_start else existing_data_start.data_end_date
+            else:
+                try_date = first_date
             
             logger.debug(f"Calculating quad returns since {try_date} for tickers {labels}")
 
