@@ -146,7 +146,7 @@ class SecurityHistory(models.Model):
                 existing_data_start = None
             
             if not full_run_flag:
-            try_date = first_date if not existing_data_start else existing_data_start.data_end_date
+                try_date = first_date if not existing_data_start else existing_data_start.data_end_date
             else:
                 try_date = first_date
             
@@ -274,7 +274,49 @@ class SecurityHistory(models.Model):
 
         daily_return = end_market_value / start_market_value - 1
 
-        return -daily_return
+        return daily_return
+
+    @classmethod
+    def weekly_return(cls, tickers):
+        date_set = cls.objects.order_by('-date').values_list('date', flat=True).distinct()
+        history = cls.objects.filter(ticker__in=tickers, date__in=date_set).order_by('date')
+
+        latest_date = date_set.latest('date')
+        year, prior_weeknum, _ = (latest_date - datetime.timedelta(days=7)).isocalendar()
+        prior_week_close_date = date_set.filter(date__week=prior_weeknum, date__year=year).latest('date')
+
+        prior_positioning = None
+        prior_cost_basis = dict()
+        start_market_value = 10000
+        market_value = start_market_value
+
+        market_value_history = [start_market_value,]
+        
+        for date in (prior_week_close_date, latest_date):
+            # liquidate
+            if prior_positioning is not None:
+                for leg in prior_positioning:
+                    try:
+                        market_value += prior_positioning[leg]*(history.get(ticker=leg, date=date).close_price - prior_cost_basis[leg])
+                    except cls.DoesNotExist:
+                        return None
+
+            market_value_history.append(market_value)
+
+            # accumulate
+            new_positioning = cls.equal_volatility_position(tickers, max_date=date, target_value=market_value)
+            
+            prior_cost_basis = dict()
+            prior_positioning = new_positioning.copy()
+
+            for leg in new_positioning:
+                prior_cost_basis[leg] = history.get(ticker=leg, date=date).close_price
+        
+        end_market_value = market_value
+
+        weekly_return = end_market_value / start_market_value - 1
+
+        return weekly_return
 
     @classmethod
     def dataframe(cls, max_date=None, tickers=None, lookback=None):

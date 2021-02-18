@@ -209,10 +209,10 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         'Market': ['VTI',]
     }
 
-    daily_return = dict()
+    weekly_return = dict()
     for quad in quad_allocation:
-        current_daily_return = YahooHistory.daily_return(quad_allocation[quad])
-        daily_return[quad] = current_daily_return*100 if current_daily_return is not None else None
+        current_weekly_return = YahooHistory.weekly_return(quad_allocation[quad])
+        weekly_return[quad] = current_weekly_return*100 if current_weekly_return is not None else None
 
     latest_date = YahooHistory.objects.latest('date').date
 
@@ -274,17 +274,21 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         prior_quad_performance[quad].append(((date-prior_quad_start).days, round(score, 2)))
 
     performance_change = dict()
+    year, prior_weeknum, _ = (latest_date - datetime.timedelta(days=7)).isocalendar()
+
     for lookup in quad_ticker_lookup:
         quad = quad_ticker_lookup[lookup]
         current_performance = quad_returns.get(label=lookup, data_end_date=latest_date).score
 
-        prior_performance = quad_returns.exclude(data_end_date=latest_date).filter(label=lookup).latest('data_end_date').score
+        print(f"data_end_date__week={prior_weeknum}, data_end_date__year={year}, label={lookup}")
+
+        prior_performance = quad_returns.filter(data_end_date__week=prior_weeknum, data_end_date__year=year, label=lookup).latest('data_end_date').score
         performance_change[quad] = round(current_performance - prior_performance, ndigits=1)
 
     return render(request, 'UserInterface/index.htm', {
         'current_quad_return': current_quad_return,
         'prior_quad_return': prior_quad_return,
-        'daily_return': daily_return,
+        'daily_return': weekly_return,
 
         'quad_performance': quad_performance,
         'prior_quad_performance': prior_quad_performance,
