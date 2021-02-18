@@ -233,6 +233,44 @@ class SecurityHistory(models.Model):
         return positioning
 
     @classmethod
+    def daily_return(cls, tickers):
+        date_set = cls.objects.order_by('-date').values_list('date', flat=True).distinct()[:2] # latest two dates
+        history = cls.objects.filter(ticker__in=tickers, date__in=date_set).order_by('date')
+
+        prior_positioning = None
+        prior_cost_basis = dict()
+        start_market_value = 10000
+        market_value = start_market_value
+
+        market_value_history = [start_market_value,]
+        
+        for date in date_set:
+            # liquidate
+            if prior_positioning is not None:
+                for leg in prior_positioning:
+                    try:
+                        market_value += prior_positioning[leg]*(history.get(ticker=leg, date=date).close_price - prior_cost_basis[leg])
+                    except cls.DoesNotExist:
+                        return None
+
+            market_value_history.append(market_value)
+
+            # accumulate
+            new_positioning = cls.equal_volatility_position(tickers, max_date=date, target_value=market_value)
+            
+            prior_cost_basis = dict()
+            prior_positioning = new_positioning.copy()
+
+            for leg in new_positioning:
+                prior_cost_basis[leg] = history.get(ticker=leg, date=date).close_price
+        
+        end_market_value = market_value
+
+        daily_return = end_market_value / start_market_value - 1
+
+        return -daily_return
+
+    @classmethod
     def dataframe(cls, max_date=None, tickers=None, lookback=None):
         results = cls.objects.all().order_by('-date')
         if tickers is not None:
@@ -404,44 +442,6 @@ class YahooHistory(SecurityHistory):
                 obj.realized_volatility_week = None
                 obj.updated = datetime.datetime.now()
                 obj.save()
-
-    @classmethod
-    def daily_return(cls, tickers):
-        date_set = cls.objects.order_by('-date').values_list('date', flat=True).distinct()[:2] # latest two dates
-        history = cls.objects.filter(ticker__in=tickers, date__in=date_set).order_by('date')
-
-        prior_positioning = None
-        prior_cost_basis = dict()
-        start_market_value = 10000
-        market_value = start_market_value
-
-        market_value_history = [start_market_value,]
-        
-        for date in date_set:
-            # liquidate
-            if prior_positioning is not None:
-                for leg in prior_positioning:
-                    try:
-                        market_value += prior_positioning[leg]*(history.get(ticker=leg, date=date).close_price - prior_cost_basis[leg])
-                    except cls.DoesNotExist:
-                        return None
-
-            market_value_history.append(market_value)
-
-            # accumulate
-            new_positioning = cls.equal_volatility_position(tickers, max_date=date, target_value=market_value)
-            
-            prior_cost_basis = dict()
-            prior_positioning = new_positioning.copy()
-
-            for leg in new_positioning:
-                prior_cost_basis[leg] = history.get(ticker=leg, date=date).close_price
-        
-        end_market_value = market_value
-
-        daily_return = end_market_value / start_market_value - 1
-
-        return -daily_return
 
     def __str__(self):
         return f"{self.ticker} on {self.date} was {self.close_price} with 1-week vol {self.realized_volatility}"
