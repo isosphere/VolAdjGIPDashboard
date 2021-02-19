@@ -3,6 +3,8 @@ import datetime
 import numpy as np
 import pandas as pd
 
+from sklearn.linear_model import LinearRegression
+
 from DataAcquisition.models import AlphaVantageHistory, YahooHistory, QuadForecasts, QuadReturn, CommitmentOfTraders
 from django.db.models import F
 from django.conf import settings
@@ -273,6 +275,23 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         
         prior_quad_performance[quad].append(((date-prior_quad_start).days, round(score, 2)))
 
+    # Regression of performance
+    current_regressions = dict()
+    prior_regressions = dict()
+
+    for quad in quad_allocation:
+        reg = LinearRegression(fit_intercept=False).fit(
+            X=np.array(list( map(lambda x: x[0], quad_performance[quad]) )).reshape(-1, 1),
+            y=np.array(list( map(lambda x: x[1], quad_performance[quad]) )).reshape(-1, 1)
+        )
+        current_regressions[quad] = reg.coef_.item()*90.0
+        
+        reg = LinearRegression(fit_intercept=False).fit(
+            X=np.array(list( map(lambda x: x[0], prior_quad_performance[quad]) )).reshape(-1, 1),
+            y=np.array(list( map(lambda x: x[1], prior_quad_performance[quad]) )).reshape(-1, 1)
+        )
+        prior_regressions[quad] = reg.coef_.item()*90.0
+
     performance_change = dict()
     year, prior_weeknum, _ = (latest_date - datetime.timedelta(days=7)).isocalendar()
 
@@ -290,6 +309,8 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
 
         'quad_performance': quad_performance,
         'prior_quad_performance': prior_quad_performance,
+        'current_regressions': current_regressions,
+        'prior_regressions': prior_regressions,
         'performance_change': performance_change,
 
         'quad_allocations': quad_allocations,

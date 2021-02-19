@@ -517,7 +517,75 @@
                             ],
                             pointBackgroundColor: ['#0000ff'],
                             backgroundColor: '#0000ff'
-                        }                        
+                        },
+                        {
+                            label: "Regression (this quarter)",
+                            data: [
+                                {
+                                    x: 0,
+                                    y: 0,
+                                },
+                                {% if quad == 1 %}
+                                {
+                                    x: 90,
+                                    y: {{current_regressions.1}}
+                                },
+                                {% elif quad == 2 %}
+                                {
+                                    x: 90,
+                                    y: {{current_regressions.2}}
+                                },
+                                {% elif quad == 3 %}
+                                {
+                                    x: 90,
+                                    y: {{current_regressions.3}}
+                                },
+                                {% elif quad == 4 %}
+                                {
+                                    x: 90,
+                                    y: {{current_regressions.4}},
+                                },
+                                {% endif %}
+                            ],
+                            type: 'line',
+                            fill: false,
+                            borderColor: '#606000',
+                            borderDash: [5, 10]
+                        },
+                        {
+                            label: "Regression (prior quarter)",
+                            data: [
+                                {
+                                    x: 0,
+                                    y: 0,
+                                },
+                                {% if quad == 1 %}
+                                {
+                                    x: 90,
+                                    y: {{prior_regressions.1}}
+                                },
+                                {% elif quad == 2 %}
+                                {
+                                    x: 90,
+                                    y: {{prior_regressions.2}}
+                                },
+                                {% elif quad == 3 %}
+                                {
+                                    x: 90,
+                                    y: {{prior_regressions.3}}
+                                },
+                                {% elif quad == 4 %}
+                                {
+                                    x: 90,
+                                    y: {{prior_regressions.4}},
+                                },
+                                {% endif %}
+                            ],
+                            type: 'line',
+                            fill: false,
+                            borderColor: '#f000f0',
+                            borderDash: [5, 10]
+                        }
                     ]
                 },
                 options: {
