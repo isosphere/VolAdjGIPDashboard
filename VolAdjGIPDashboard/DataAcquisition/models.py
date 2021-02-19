@@ -124,13 +124,15 @@ class SecurityHistory(models.Model):
         return quad_return, quad_stdev
 
     @classmethod
+    def core_tickers(cls):
+        return list(map(lambda x: [x.upper()], cls.objects.values_list('ticker', flat=True).distinct()))
+
+    @classmethod
     def update_quad_return(cls, first_date=None, ticker=None, tickers=None):
         logger = logging.getLogger('SecurityHistory.update_quad_return')
         
         if ticker is None and tickers is None:
-            tickers = list(map(lambda x: [x.upper()], cls.objects.values_list('ticker', flat=True).distinct()))
-            tickers.append(['QQQ', 'XLF', 'XLI'])
-            tickers.append(['TLT', 'UUP', 'XLU'])
+            tickers = cls.core_tickers()
         elif ticker is not None:
             tickers = [[ticker,]]
 
@@ -493,6 +495,14 @@ class BitfinexHistory(SecurityHistory):
 
 
 class YahooHistory(SecurityHistory):
+    @classmethod
+    def core_tickers(cls):
+        tickers = list(map(lambda x: [x.upper()], cls.objects.values_list('ticker', flat=True).distinct()))
+        tickers.append(['QQQ', 'XLF', 'XLI'])
+        tickers.append(['TLT', 'UUP', 'XLU'])
+
+        return tickers
+    
     @classmethod
     def update(cls, tickers=None, clobber=False, start=None, end=None):
         logger = logging.getLogger('YahooHistory.update')
