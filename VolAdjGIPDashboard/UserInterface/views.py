@@ -37,6 +37,19 @@ def quad_performance(request, label):
     for ticker_lookup, date, score in prior_quad_returns.values_list('label', 'data_end_date', 'score'):
         prior_quad_performance.append(((date-prior_quad_start).days, round(score, 2)))
 
+    # Regression of performance
+    reg = LinearRegression(fit_intercept=False).fit(
+        X=np.array(list( map(lambda x: x[0], quad_performance) )).reshape(-1, 1),
+        y=np.array(list( map(lambda x: x[1], quad_performance) )).reshape(-1, 1)
+    )
+    current_regression = reg.coef_.item()*90.0
+    
+    reg = LinearRegression(fit_intercept=False).fit(
+        X=np.array(list( map(lambda x: x[0], prior_quad_performance) )).reshape(-1, 1),
+        y=np.array(list( map(lambda x: x[1], prior_quad_performance) )).reshape(-1, 1)
+    )
+    prior_regression = reg.coef_.item()*90.0
+
     latest_performance = quad_returns.latest('data_end_date').data_end_date
 
     current_performance = quad_returns.get(data_end_date=latest_performance).score
@@ -51,7 +64,9 @@ def quad_performance(request, label):
         'label': label,
         'performance_change': performance_change,
         'quad_performance': quad_performance,
-        'prior_quad_performance': prior_quad_performance
+        'prior_quad_performance': prior_quad_performance,
+        'current_regression': current_regression,
+        'prior_regression': prior_regression
     })
 
 def all_symbol_summary(quad_allocation, latest_date):

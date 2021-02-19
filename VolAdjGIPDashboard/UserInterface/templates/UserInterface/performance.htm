@@ -58,6 +58,40 @@
                     ],
                     pointBackgroundColor: ['#0000ff'],
                     backgroundColor: '#0000ff'
+                },
+                {
+                    label: "Regression (this quarter)",
+                    data: [
+                        {
+                            x: 0,
+                            y: 0,
+                        },
+                        {
+                            x: 90,
+                            y: {{current_regression}}
+                        },
+                    ],
+                    type: 'line',
+                    fill: false,
+                    borderColor: '#606000',
+                    borderDash: [5, 10]
+                },
+                {
+                    label: "Regression (prior quarter)",
+                    data: [
+                        {
+                            x: 0,
+                            y: 0,
+                        },
+                        {
+                            x: 90,
+                            y: {{prior_regression}}
+                        },
+                    ],
+                    type: 'line',
+                    fill: false,
+                    borderColor: '#f000f0',
+                    borderDash: [5, 10]
                 }
             ]
         },
