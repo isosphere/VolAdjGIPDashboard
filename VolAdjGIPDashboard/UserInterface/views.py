@@ -31,11 +31,17 @@ def quad_performance(request, label):
 
     quad_performance = list()
     for ticker_lookup, date, score in quad_returns.values_list('label', 'data_end_date', 'score'):
-        quad_performance.append(((date-current_quad_start).days, round(score, 2)))
+        if score:
+            quad_performance.append(((date-current_quad_start).days, round(score, 2)))
+        else:
+            continue
 
     prior_quad_performance = list()
     for ticker_lookup, date, score in prior_quad_returns.values_list('label', 'data_end_date', 'score'):
-        prior_quad_performance.append(((date-prior_quad_start).days, round(score, 2)))
+        if score:
+            prior_quad_performance.append(((date-prior_quad_start).days, round(score, 2)))
+        else:
+            continue
 
     # Regression of performance
     reg = LinearRegression(fit_intercept=False).fit(
