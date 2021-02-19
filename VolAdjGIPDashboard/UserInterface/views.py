@@ -118,6 +118,8 @@ def all_symbol_summary(quad_allocation, latest_date):
                 current_performance = QuadReturn.objects.filter(label=f"{group.__name__}_{symbol}").latest('quarter_end_date', 'data_end_date')
                 if current_performance and current_performance.quad_stdev:
                     current_performance = current_performance.quad_return / current_performance.quad_stdev
+                else:
+                    current_performance = None
             except QuadReturn.DoesNotExist:
                 current_performance = None
 
