@@ -481,8 +481,8 @@ class BitfinexHistory(SecurityHistory):
     
     @classmethod
     def backfill(cls, tickers=None):
-        end = int(round(time.time() * 1000))
-        start = end - (1000 * 60 * 60 * 24 * 252 * 7) # 6 years ago
+        end = datetime.datetime.now()
+        start = end -  datetime.timedelta(days=252*7) # 7 years ago
         cls.update(tickers, start=start, end=end)
 
     def __str__(self):
