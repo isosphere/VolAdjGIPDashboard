@@ -137,9 +137,10 @@ class SecurityHistory(models.Model):
             tickers = [[ticker,]]
 
         latest_date = cls.objects.latest('date').date
-        full_run_flag = True if first_date is not None else False
+        full_run_flag = True if first_date is None else False
         first_date = first_date if first_date is not None else cls.objects.earliest('date').date
 
+        logging.info(f"Latest date of data = {latest_date}. ")
         for labels in tickers:
             sortable = labels
             sortable.sort()
