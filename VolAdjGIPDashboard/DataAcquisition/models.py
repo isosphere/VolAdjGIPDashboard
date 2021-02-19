@@ -43,16 +43,17 @@ class SecurityHistory(models.Model):
 
     @classmethod
     def quad_return(cls, tickers, date_within_quad):
+        logger = logging.getLogger('SecurityHistory.quad_return')
         tickers.sort() # make the list deterministic for the same input (used for label later)
 
         quarter_end_date = (date_within_quad + pd.tseries.offsets.QuarterEnd(n=0)).date()
         current_quad = QuadForecasts.objects.filter(quarter_end_date=quarter_end_date).latest('date')
-        #print(f"current_quad quarter={current_quad.quarter_end_date} date={current_quad.date}")
+        logging.debug(f"current_quad quarter={current_quad.quarter_end_date} date={current_quad.date}")
 
         # this is the last known date for the prior quad
         start_date = (date_within_quad - pd.tseries.offsets.QuarterEnd(1) + datetime.timedelta(days=1)).date()
         
-        #print(f"last known date for prior quad: {start_date}")
+        logging.debug(f"last known date for prior quad: {start_date}")
         
         # this is when we started this quad
         history = cls.objects.filter(ticker__in=tickers, date__gte=start_date, date__lte=date_within_quad).order_by('date')
@@ -76,7 +77,7 @@ class SecurityHistory(models.Model):
         
         prior_positioning = None
         prior_cost_basis = dict()
-        start_market_value = 10000
+        start_market_value = 1e7
         market_value = start_market_value
 
         market_value_history = [start_market_value,]
