@@ -49,12 +49,14 @@ def quad_performance(request, label):
         y=np.array(list( map(lambda x: x[1], quad_performance) )).reshape(-1, 1)
     )
     current_regression = reg.coef_.item()*90.0
+    current_regression = current_regression if current_regression is not None else 0
     
     reg = LinearRegression(fit_intercept=False).fit(
         X=np.array(list( map(lambda x: x[0], prior_quad_performance) )).reshape(-1, 1),
         y=np.array(list( map(lambda x: x[1], prior_quad_performance) )).reshape(-1, 1)
     )
     prior_regression = reg.coef_.item()*90.0
+    prior_regression = prior_regression if prior_regression is not None else 0
 
     latest_performance = quad_returns.latest('data_end_date').data_end_date
 
