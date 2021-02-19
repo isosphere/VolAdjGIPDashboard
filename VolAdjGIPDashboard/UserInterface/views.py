@@ -280,8 +280,6 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         quad = quad_ticker_lookup[lookup]
         current_performance = quad_returns.get(label=lookup, data_end_date=latest_date).score
 
-        print(f"data_end_date__week={prior_weeknum}, data_end_date__year={year}, label={lookup}")
-
         prior_performance = quad_returns.filter(data_end_date__week=prior_weeknum, data_end_date__year=year, label=lookup).latest('data_end_date').score
         performance_change[quad] = round(current_performance - prior_performance, ndigits=1)
 
