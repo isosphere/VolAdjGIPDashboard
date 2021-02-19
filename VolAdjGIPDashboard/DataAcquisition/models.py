@@ -1,15 +1,18 @@
+import asyncio
 import datetime
 import logging
 import io
-import json
 import math
 import requests
+import time
 
 from dateutil.parser import parse
 
 from django.db import models
 from django.db.utils import IntegrityError
 from django.conf import settings
+
+from bfxapi import Client
 import pandas_datareader.data as web
 import quandl
 
@@ -440,6 +443,55 @@ class AlphaVantageHistory(SecurityHistory):
                 obj.save()
 
 
+class BitfinexHistory(SecurityHistory):
+    @classmethod
+    def update(cls, tickers=None, clobber=False, start=None, end=None):
+        logger = logging.getLogger('BitfinexHistory.update')
+
+        bfx = Client(logLevel='INFO')
+
+        if clobber is True:
+            logger.warning("Clobber not currently supported.")
+
+        if tickers is None:
+            tickers = cls.objects.all().values_list('ticker', flat=True).distinct()
+            logger.info(f"No ticker specified, so using all distinct tickers in the database: {tickers}")
+
+        if end is None:
+            end = int(round(time.time() * 1000))
+        else:
+            end = int(round(end.timestamp() * 1000))
+
+        if start is None:
+            start = end - (1000 * 60 * 60 * 24 * 7) # 7 days ago
+        else:
+            start = int(round(start.timestamp() * 1000))
+
+        runtime = datetime.datetime.now()
+
+        for ticker in tickers:
+            candles = asyncio.run(bfx.rest.get_public_candles(f't{ticker}', start, end, tf='1D', limit="10000"))
+            for milli_timestamp, open, close, high, low, volume in candles:
+                date = datetime.datetime.fromtimestamp(milli_timestamp/1000.0)
+                obj, created = cls.objects.get_or_create(date=date, ticker=ticker, defaults={'close_price':close, 'updated': runtime})
+                obj.close_price = close
+                obj.realized_volatility = None # we'll calculate this later
+                obj.updated = runtime
+                obj.save() # it would be faster if we deferred these saves and did a bulk or atomic operation
+    
+    @classmethod
+    def backfill(cls, tickers=None):
+        end = int(round(time.time() * 1000))
+        start = end - (1000 * 60 * 60 * 24 * 252 * 7) # 6 years ago
+        cls.update(tickers, start=start, end=end)
+
+    def __str__(self):
+        return f"{self.ticker} on {self.date} was {self.close_price} with 1-week vol {self.realized_volatility}"
+
+    class Meta:
+        unique_together = [['ticker', 'date']]
+
+
 class YahooHistory(SecurityHistory):
     @classmethod
     def update(cls, tickers=None, clobber=False, start=None, end=None):
@@ -743,7 +795,7 @@ class QuadForecasts(models.Model):
     class Meta:
         unique_together = [['quarter_end_date', 'date']]
 
-class CommitmentOfTraders(models.Model):    
+class CommitmentOfTraders(models.Model):
     symbol = models.TextField()
     date = models.DateField()
     net_long = models.FloatField()

@@ -1,39 +1,46 @@
+aiohttp==3.4.4
 astroid==2.3.1
+asyncio==3.4.3
 backcall==0.2.0
 beautifulsoup4==4.8.2
+bitfinex-api-py @ git+https://github.com/bitfinexcom/bitfinex-api-py.git@e39ed1c491c6c1a10c5ebe1d7ba631fc4dbe6705
 certifi==2020.12.5
 chardet==3.0.4
 colorama==0.4.1
 decorator==4.4.2
-Django==2.2.13
 django-bootstrap4==1.0.1
+Django==2.2.13
 idna==2.8
 inflection==0.4.0
-ipython==7.19.0
 ipython-genutils==0.2.0
+ipython==7.19.0
+isort==4.3.21
 isort==4.3.21
 jedi==0.17.2
 joblib==1.0.1
 lazy-object-proxy==1.4.2
 line-profiler==2.1.1
-lxml @ file:///D:/bld/lxml_1610146674863/work
+lxml==4.6.2
 mccabe==0.6.1
 more-itertools==8.2.0
 numpy==1.17.2
-pandas==0.25.1
 pandas-datareader==0.8.1
+pandas==0.25.1
 parso==0.7.1
 pickleshare==0.7.5
 prompt-toolkit==3.0.8
+pyee==8.0.1
 Pygments==2.7.3
 pylint==2.4.2
+pytest-asyncio==0.10.0
 python-dateutil==2.8.0
 pytz==2019.3
 Quandl==3.5.0
 requests==2.22.0
-rope @ file:///home/conda/feedstock_root/build_artifacts/rope_1602094471915/work
+rope==0.18.0
 scikit-learn==0.24.1
-scipy @ file:///C:/bld/scipy_1604305143982/work
+scipy==1.6.1
+six==1.12.0
 six==1.12.0
 sklearn==0.0
 soupsieve==1.9.5
@@ -44,6 +51,7 @@ traitlets==5.0.5
 typed-ast==1.4.0
 urllib3==1.25.6
 wcwidth==0.2.5
+websockets==7.0
 wincertstore==0.2
 wrapt==1.11.2
 xlrd==1.2.0
