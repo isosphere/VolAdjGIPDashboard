@@ -102,6 +102,7 @@ def all_symbol_summary(quad_allocation, latest_date):
                     '--.--',
                     '--.--',
                     '--.--',
+                    '--.--',
                     group.__name__ + '_' + symbol
                 )
                 continue
