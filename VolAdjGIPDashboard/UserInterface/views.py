@@ -86,7 +86,8 @@ def all_symbol_summary(quad_allocation, latest_date):
                     if symbol not in all_symbols:
                         all_symbols.append(symbol)
 
-            all_symbols += ['XLV', 'SHY', 'EDV', 'IWM', 'PSP', 'RSP', 'JNK', 'FXB', 'EWG', 'EWA', 'ITB', 'TIP', 'VTI', 'BND', 'XLE']
+            #all_symbols += ['XLV', 'SHY', 'EDV', 'IWM', 'PSP', 'RSP', 'JNK', 'FXB', 'EWG', 'EWA', 'ITB', 'TIP', 'VTI', 'BND', 'XLE']
+            all_symbols += list(group.objects.all().values_list('ticker', flat=True).distinct())
         else:
             all_symbols = list(group.objects.all().values_list('ticker', flat=True).distinct())
 
