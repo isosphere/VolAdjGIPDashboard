@@ -48,12 +48,12 @@ class SecurityHistory(models.Model):
 
         quarter_end_date = (date_within_quad + pd.tseries.offsets.QuarterEnd(n=0)).date()
         current_quad = QuadForecasts.objects.filter(quarter_end_date=quarter_end_date).latest('date')
-        logging.debug(f"current_quad quarter={current_quad.quarter_end_date} date={current_quad.date}")
+        logging.debug("current_quad quarter=%s date=%s", current_quad.quarter_end_date, current_quad.date)
 
         # this is the last known date for the prior quad
         start_date = (date_within_quad - pd.tseries.offsets.QuarterEnd(1) + datetime.timedelta(days=1)).date()
         
-        logging.debug(f"last known date for prior quad: {start_date}")
+        logging.debug("last known date for prior quad: %s", start_date)
         
         # this is when we started this quad
         history = cls.objects.filter(ticker__in=tickers, date__gte=start_date, date__lte=date_within_quad).order_by('date')
@@ -141,7 +141,7 @@ class SecurityHistory(models.Model):
         full_run_flag = True if first_date is None else False
         first_date = first_date if first_date is not None else cls.objects.earliest('date').date
 
-        logging.info(f"Latest date of data = {latest_date}. ")
+        logging.info("Latest date of data = %s.", latest_date)
         for labels in tickers:
             sortable = labels
             sortable.sort()
@@ -157,10 +157,10 @@ class SecurityHistory(models.Model):
             else:
                 try_date = first_date
             
-            logger.debug(f"Calculating quad returns since {try_date} for tickers {labels}")
+            logger.debug("Calculating quad returns since %s for tickers %s", try_date, labels)
 
             while try_date <= latest_date:
-                logger.debug(f"Tickers={labels} date = {try_date} ... ")
+                logger.debug(f"Tickers=%s, date=%s ... ", labels, try_date)
                 try:
                     cls.quad_return(
                         tickers=labels,
@@ -193,7 +193,7 @@ class SecurityHistory(models.Model):
     @classmethod
     def equal_volatility_position(cls, tickers, lookback=28, target_value=10000, max_date=None):
         logger = logging.getLogger('SecurityHistory.equal_volatility_position')
-        logger.debug(f"function triggered for tickers=[{tickers}], lookback={lookback}, target_value={target_value}, max_date={max_date}")
+        logger.debug("function triggered for tickers=[%s], lookback=%s, target_value=%s, max_date=%s", tickers, lookback, target_value, max_date)
 
         standard_move = dict()
         last_price_lookup = dict()
@@ -214,7 +214,7 @@ class SecurityHistory(models.Model):
                 raise ValueError
 
             latest_close, realized_vol = subset.iloc[-1].close_price, subset.iloc[-1].realized_vol
-            logger.debug(f"{security} close={latest_close}, realized_vol={realized_vol}")
+            logger.debug("%s close=%s, realized_vol=%s", security, latest_close, realized_vol)
             
             standard_move[security] = realized_vol*latest_close
             last_price_lookup[security] = latest_close
@@ -223,18 +223,18 @@ class SecurityHistory(models.Model):
                 controlling_leg = security
                 max_price = latest_close
 
-        logger.debug(f"Controlling leg (most expensive) is {controlling_leg}, with a standard move of ${standard_move[controlling_leg]:2f}.")
+        logger.debug("Controlling leg (most expensive) is %s, with a standard move of $%2f.", controlling_leg, standard_move[controlling_leg])
 
         leg_ratios = dict()
         for leg in set(tickers).symmetric_difference({controlling_leg}):
             leg_ratios[leg] = standard_move[controlling_leg] / standard_move[leg]
-            logger.debug(f"leg={leg}, standard move=${standard_move[leg]:2f} ratio={leg_ratios[leg]}")
+            logger.debug("leg=%s, standard move=$%2f ratio=%s", leg, standard_move[leg], leg_ratios[leg])
         
         base_cost = last_price_lookup[controlling_leg]
         for leg in leg_ratios:
             base_cost += last_price_lookup[leg] * leg_ratios[leg]
 
-        logger.debug(f"Base cost: ${base_cost:.2f}")
+        logger.debug("Base cost: $%2f", base_cost)
 
         multiplier = target_value // base_cost
         
@@ -245,7 +245,7 @@ class SecurityHistory(models.Model):
             positioning[leg] = math.floor(multiplier*leg_ratios[leg])
             actual_cost += positioning[leg]*last_price_lookup[leg]
 
-        logger.debug(f"Actual cost: ${actual_cost:.2f}")
+        logger.debug("Actual cost: $%2f", actual_cost)
         
         return positioning
 
