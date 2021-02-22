@@ -209,6 +209,10 @@ class SecurityHistory(models.Model):
 
         for security in tickers:
             subset = dataframe[dataframe.index.get_level_values('ticker') == security]
+            if subset.empty:
+                logger.error("No data for one of the legs ('%s'), skipping.", security)
+                raise ValueError
+
             latest_close, realized_vol = subset.iloc[-1].close_price, subset.iloc[-1].realized_vol
             logger.debug(f"{security} close={latest_close}, realized_vol={realized_vol}")
             
