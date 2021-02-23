@@ -19,12 +19,15 @@ Performance history charts show the quarter-to-date return divided by the quarte
 
 # Commitment of Traders
 The latest CFTC Commitment of Traders data is summarized statistically to put the net long positions of the non-commercials into context historically.
+
 ![Commitment of Traders Summary](COT.png)
 
 # Status Dashboard
 An at-a-glance look at the current quarter-to-date performance of particular baskets of securities, and the week-to-date performance as well for a higher resolution picture. As this is ultimately a low-frequency framework, I wanted to avoid daily data being displayed directly to keep emotions cool.
+
 ![Status Dashboard](status_tables.png)
 
 # Security Summary
 A more comprehensive list of various ETFs and currencies, putting their current week-to-date return in context statistically. 
+
 ![Summary](summary.png)
