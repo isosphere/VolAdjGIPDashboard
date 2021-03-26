@@ -7,6 +7,7 @@ import requests
 import time
 
 from dateutil.parser import parse
+import pytz
 
 from django.db import models
 from django.db.utils import IntegrityError
@@ -480,7 +481,7 @@ class BitfinexHistory(SecurityHistory):
         for ticker in tickers:
             candles = asyncio.run(bfx.rest.get_public_candles(f't{ticker}', start, end, tf='1D', limit="10000"))
             for milli_timestamp, open, close, high, low, volume in candles:
-                date = datetime.datetime.fromtimestamp(milli_timestamp/1000.0)
+                date = datetime.datetime.fromtimestamp(milli_timestamp/1000.0, tz=pytz.utc).date()
                 obj, created = cls.objects.get_or_create(date=date, ticker=ticker, defaults={'close_price':close, 'updated': runtime})
                 obj.close_price = close
                 obj.realized_volatility = None # we'll calculate this later
