@@ -816,10 +816,10 @@ class CommitmentOfTraders(models.Model):
     symbol = models.TextField()
     date = models.DateField()
     net_long = models.FloatField()
-    one_year_z = models.FloatField()
-    three_year_z = models.FloatField()
-    one_year_abs_z = models.FloatField()
-    three_year_abs_z = models.FloatField()
+    one_year_z = models.FloatField(null=True)
+    three_year_z = models.FloatField(null=True)
+    one_year_abs_z = models.FloatField(null=True)
+    three_year_abs_z = models.FloatField(null=True)
 
     @classmethod
     def process_net_long(cls, data):
