@@ -867,8 +867,13 @@ class CommitmentOfTraders(models.Model):
             'DJIA': '12460P',
             'Lean Hogs': '054642',
             'Coffee': '083731',
-            'Japanese Yen': '097741'
-
+            'Japanese Yen': '097741',
+            'Bitcoin': '133741',
+            'Corn': '002602',
+            'Wheat SRW': '001602',
+            'Wheat HRW': '001612',
+            'Soybeans': '005602',
+            'Random Length Lumber': '058643',
         }
         sub_code = '_FO_L_ALL'
 
