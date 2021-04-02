@@ -104,6 +104,7 @@ class SecurityHistory(models.Model):
 
         quad_return = end_market_value / start_market_value - 1
         quad_stdev = pd.DataFrame(market_value_history).pct_change().std(ddof=1).values[0]
+        quad_stdev = quad_stdev if quad_stdev is not None else 1.0
         
         QuadReturn.objects.filter(
             quarter_end_date = current_quad.quarter_end_date,
