@@ -29,7 +29,7 @@ parso==0.7.1
 pickleshare==0.7.5
 prompt-toolkit==3.0.8
 pyee==8.0.1
-Pygments==2.7.3
+Pygments==2.7.4
 pylint==2.4.2
 pytest-asyncio==0.10.0
 python-dateutil==2.8.0
