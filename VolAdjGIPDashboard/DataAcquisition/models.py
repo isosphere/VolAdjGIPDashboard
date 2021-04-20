@@ -49,12 +49,12 @@ class SecurityHistory(models.Model):
 
         quarter_end_date = (date_within_quad + pd.tseries.offsets.QuarterEnd(n=0)).date()
         current_quad = QuadForecasts.objects.filter(quarter_end_date=quarter_end_date).latest('date')
-        logging.debug("current_quad quarter=%s date=%s", current_quad.quarter_end_date, current_quad.date)
+        logger.debug("current_quad quarter=%s date=%s", current_quad.quarter_end_date, current_quad.date)
 
         # this is the last known date for the prior quad
         start_date = (date_within_quad - pd.tseries.offsets.QuarterEnd(1) + datetime.timedelta(days=1)).date()
         
-        logging.debug("last known date for prior quad: %s", start_date)
+        logger.debug("last known date for prior quad: %s", start_date)
         
         # this is when we started this quad
         history = cls.objects.filter(ticker__in=tickers, date__gte=start_date, date__lte=date_within_quad).order_by('date')
