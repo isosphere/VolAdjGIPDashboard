@@ -553,7 +553,7 @@ class CoinGeckoHistory(SecurityHistory):
 
             for epoch_time, price in prices:
                 date = datetime.datetime.fromtimestamp(epoch_time/1000, tz=pytz.utc).date()
-                obj, created = cls.objects.get_or_create(date=date, pair=coin, defaults={'close_price':price, 'updated': runtime, 'ticker':coin.ticker })
+                obj, created = cls.objects.get_or_create(date=date, pair=coin, defaults={'close_price':price, 'updated': runtime, 'ticker':coin.ticker.upper() })
                 obj.close_price = price
                 obj.realized_volatility = None # we'll calculate this later
                 obj.updated = runtime
