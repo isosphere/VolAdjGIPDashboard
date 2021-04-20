@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand, CommandError
-from DataAcquisition.models import YahooHistory, AlphaVantageHistory, BitfinexHistory
+from DataAcquisition.models import YahooHistory, AlphaVantageHistory, BitfinexHistory, CoinGeckoHistory
 
 
 class Command(BaseCommand):
@@ -10,3 +10,4 @@ class Command(BaseCommand):
         YahooHistory.update_quad_return()
         AlphaVantageHistory.update_quad_return()
         BitfinexHistory.update_quad_return()
+        CoinGeckoHistory.update_quad_return()

@@ -131,7 +131,7 @@ class SecurityHistory(models.Model):
         return list(map(lambda x: [x.upper()], cls.objects.values_list('ticker', flat=True).distinct()))
 
     @classmethod
-    def update_quad_return(cls, first_date=None, ticker=None, tickers=None):
+    def update_quad_return(cls, first_date=None, ticker=None, tickers=None, full_run=False):
         logger = logging.getLogger('SecurityHistory.update_quad_return')
         
         if ticker is None and tickers is None:
@@ -140,7 +140,6 @@ class SecurityHistory(models.Model):
             tickers = [[ticker,]]
 
         latest_date = cls.objects.latest('date').date
-        full_run_flag = True if first_date is None else False
         first_date = first_date if first_date is not None else cls.objects.earliest('date').date
 
         logging.info("Latest date of data = %s.", latest_date)
@@ -154,7 +153,7 @@ class SecurityHistory(models.Model):
             except QuadReturn.DoesNotExist:
                 existing_data_start = None
             
-            if not full_run_flag:
+            if not full_run:
                 try_date = first_date if not existing_data_start else existing_data_start.data_end_date
             else:
                 try_date = first_date
