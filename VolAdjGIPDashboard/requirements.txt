@@ -9,7 +9,7 @@ chardet==3.0.4
 colorama==0.4.1
 decorator==4.4.2
 django-bootstrap4==1.0.1
-Django==2.2.21
+Django==2.2.22
 idna==2.8
 inflection==0.4.0
 ipython-genutils==0.2.0
