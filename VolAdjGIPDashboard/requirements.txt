@@ -3,7 +3,7 @@ astroid==2.3.1
 asyncio==3.4.3
 backcall==0.2.0
 beautifulsoup4==4.8.2
-bitfinex-api-py @ git+https://github.com/bitfinexcom/bitfinex-api-py.git@e39ed1c491c6c1a10c5ebe1d7ba631fc4dbe6705
+bitfinex-api-py @ git+https://github.com/bitfinexcom/bitfinex-api-py.git@7a04ecb64d1717a9cf28617342bee7fd8243bcb0
 certifi==2020.12.5
 chardet==3.0.4
 colorama==0.4.1
@@ -40,17 +40,16 @@ rope==0.18.0
 scikit-learn==0.24.1
 scipy==1.6.1
 six==1.12.0
-six==1.12.0
 sklearn==0.0
 soupsieve==1.9.5
 sqlparse==0.3.0
-Theano==1.0.5
 threadpoolctl==2.1.0
 traitlets==5.0.5
 typed-ast==1.4.0
-urllib3==1.26.5
+urllib3<1.25.0
 wcwidth==0.2.5
-websockets==9.1
+websockets==8.0
 wincertstore==0.2
 wrapt==1.11.2
 xlrd==1.2.0
+yfinance==0.1.60

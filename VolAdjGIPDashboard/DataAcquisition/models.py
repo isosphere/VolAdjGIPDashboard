@@ -15,10 +15,13 @@ from django.conf import settings
 
 from bfxapi import Client
 import pandas_datareader.data as web
+import yfinance
 import quandl
 
 import pandas as pd
 import numpy as np
+
+yfinance.pdr_override()
 
 class QuadReturn(models.Model):
     quarter_end_date = models.DateField()
