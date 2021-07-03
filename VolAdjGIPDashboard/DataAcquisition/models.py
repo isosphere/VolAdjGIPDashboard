@@ -603,7 +603,7 @@ class YahooHistory(SecurityHistory):
                     pass
             
             try:
-                dataframe = web.DataReader(security, 'yahoo', start, end)
+                dataframe = web.get_data_yahoo(security, start=start, end=end)
             except KeyError:
                 logger.error(f"No data found for {security}")
                 continue
