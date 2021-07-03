@@ -708,7 +708,7 @@ class QuadForecasts(models.Model):
             start_date = datetime.date(1950, 1, 1)
 
         # Real GDP, seasonally adjusted. Quarterly.
-        gdp_data = web.DataReader('GDPC1', 'fred', start = start_date)['GDPC1']
+        gdp_data = web.DataReader('GDPC1', data_source='fred', start = start_date)['GDPC1']
 
         # align the FRED quarterly dates to Pandas quarterly dates
         # each index value will be the last day of a quarter. i.e. 2019-06-30 is Q2 2019.
@@ -716,7 +716,7 @@ class QuadForecasts(models.Model):
         gdp_data = gdp_data.resample('Q').asfreq()
 
         # CPI, all items, urban, not seasonally adjusted. Monthly.
-        cpi_all_urban_unadjusted_data = web.DataReader('CPIAUCNS', 'fred', start = start_date)['CPIAUCNS']    
+        cpi_all_urban_unadjusted_data = web.DataReader('CPIAUCNS', data_source='fred', start = start_date)['CPIAUCNS']    
         cpi_data = cpi_all_urban_unadjusted_data.resample('Q').mean()
 
         cpi_nowcasts = CPIForecast.dataframe()
