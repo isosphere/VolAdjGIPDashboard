@@ -381,6 +381,12 @@ class SecurityHistory(models.Model):
 
             if not result.empty:
                 cls.objects.filter(ticker=ticker, date=date).update(realized_volatility=result.values[0])
+    
+    @classmethod
+    def add_tickers(cls, tickers=[]):
+        cls.update(tickers=tickers)
+        cls.calculate_stats()
+        cls.update_quad_return(tickers=[[x] for x in tickers])
 
     def __str__(self):
         return f"{self.ticker} on {self.date} was {self.close_price}"
