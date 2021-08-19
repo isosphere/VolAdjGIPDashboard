@@ -1,5 +1,5 @@
 # VolAdjGIPDashboard
-Volatility-adjusted US growth, inflation, policy based investment portfolio. A website dashboard for macro-economics based investment decisions similar to ideas expoused by Ray Dalio. 
+Volatility-adjusted positioning based on US growth and inflation. A website dashboard for macro-economics based investment decisions similar to ideas expoused by Ray Dalio. 
 
 The essential axiom underlying it is that the rate of change of inflation and growth determines the optimal portfolio basket. High growth and low inflation is very bullish growth indexes, like the NASDAQ. Low growth and high inflation is bullish gold. 
 
