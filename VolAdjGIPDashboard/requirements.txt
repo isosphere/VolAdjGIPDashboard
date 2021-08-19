@@ -9,6 +9,7 @@ beautifulsoup4==4.8.2
 bitfinex-api-py==1.1.15
 certifi==2020.12.5
 chardet==3.0.4
+charset-normalizer==2.0.4
 colorama==0.4.1
 decorator==4.4.2
 Django==3.2.6
@@ -50,7 +51,7 @@ pytest-asyncio==0.10.0
 python-dateutil==2.8.0
 pytz==2019.3
 Quandl==3.5.0
-requests==2.22.0
+requests==2.26.0
 rope==0.18.0
 scikit-learn==0.24.1
 scipy==1.6.1
@@ -63,7 +64,7 @@ toml==0.10.2
 traitlets==5.0.5
 typed-ast==1.4.3
 typing-extensions==3.10.0.0
-urllib3==1.24.3
+urllib3==1.26.6
 wcwidth==0.2.5
 websockets==8.0
 wincertstore==0.2
