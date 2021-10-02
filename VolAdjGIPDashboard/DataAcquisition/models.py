@@ -566,7 +566,7 @@ class CoinGeckoHistory(SecurityHistory):
                 obj.close_price = price
                 obj.realized_volatility = None # we'll calculate this later
                 obj.updated = runtime
-                obj.save() # it would be faster if we deferred these saves and did a bulk or atomic operation                
+                obj.save() # it would be faster if we deferred these saves and did a bulk or atomic operation
     class Meta:
         unique_together = [['pair', 'date']]
 
