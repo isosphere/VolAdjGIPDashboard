@@ -251,7 +251,10 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         quad_allocations[quad] = YahooHistory.equal_volatility_position(quad_allocation[quad], target_value=net_liquidating_value)
 
     # Quad Return Calculation
-    current_quad_forecast = QuadForecasts.objects.filter(quarter_end_date=latest_date + pd.tseries.offsets.QuarterEnd(n=0)).latest('date')
+    try:
+        current_quad_forecast = QuadForecasts.objects.filter(quarter_end_date=latest_date + pd.tseries.offsets.QuarterEnd(n=0)).latest('date')
+    except QuadForecasts.DoesNotExist:
+        current_quad_forecast = QuadForecasts.objects.filter(quarter_end_date=latest_date - pd.tseries.offsets.QuarterEnd(n=1)).latest('date')
     current_quad, quarter_end_date = current_quad_forecast.quad, current_quad_forecast.quarter_end_date
     
     data_updated = YahooHistory.objects.latest('updated').updated
