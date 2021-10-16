@@ -880,8 +880,6 @@ class QuadForecasts(models.Model):
             'quarter_end_date_prior'
         ], inplace=True, axis='columns')
 
-        print(dataframe.tail(7))
-
         return dataframe, latest_date
 
     @classmethod
