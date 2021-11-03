@@ -762,7 +762,7 @@ class QuadForecasts(models.Model):
 
         # align the FRED quarterly dates to Pandas quarterly dates
         # each index value will be the last day of a quarter. i.e. 2019-06-30 is Q2 2019.
-        gdp_data.index = gdp_data.index.shift(1, freq='Q')
+        gdp_data.index = gdp_data.index + pd.offsets.QuarterEnd(n=0)
         gdp_data = gdp_data.resample('Q').asfreq()
 
         # CPI, all items, urban, not seasonally adjusted. Monthly.
