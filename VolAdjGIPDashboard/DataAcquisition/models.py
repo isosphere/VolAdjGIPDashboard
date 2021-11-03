@@ -767,6 +767,7 @@ class QuadForecasts(models.Model):
 
         # CPI, all items, urban, not seasonally adjusted. Monthly.
         cpi_all_urban_unadjusted_data = web.get_data_fred('CPIAUCNS', start = start_date)['CPIAUCNS']
+        cpi_all_urban_unadjusted_data.index = pd.to_datetime(cpi_all_urban_unadjusted_data.index)
         cpi_data = cpi_all_urban_unadjusted_data.resample('Q').mean()
 
         cpi_nowcasts = CPIForecast.dataframe()
