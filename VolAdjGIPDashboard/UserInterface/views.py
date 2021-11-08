@@ -231,8 +231,8 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     quad_allocation = {
         1: ['QQQ',],
         2: ['XLF', 'XLI', 'QQQ'],
-        3: ['GLD',],
-        4: ['XLU', 'TLT', 'UUP'],
+        3: ['GLD','VPU'],
+        4: ['VPU', 'TLT', 'UUP'],
         'Market': ['VTI',]
     }
 

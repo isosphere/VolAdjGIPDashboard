@@ -576,7 +576,7 @@ class YahooHistory(SecurityHistory):
     def core_tickers(cls):
         tickers = list(map(lambda x: [x.upper()], cls.objects.values_list('ticker', flat=True).distinct()))
         tickers.append(['QQQ', 'XLF', 'XLI'])
-        tickers.append(['TLT', 'UUP', 'XLU'])
+        tickers.append(['TLT', 'UUP', 'VPU'])
 
         return tickers
     
