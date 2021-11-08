@@ -6,7 +6,7 @@ class Command(BaseCommand):
     help = 'Update quad return calculations for all available data'
 
     def handle(self, *args, **options):
-        YahooHistory.update_quad_return(tickers=[['QQQ',],['XLF', 'XLI', 'QQQ'],['GLD',],['XLU', 'TLT', 'UUP'],['VTI']])
+        YahooHistory.update_quad_return(tickers=[['QQQ',],['XLF', 'XLI', 'QQQ'],['GLD','VPU'],['VPU', 'TLT', 'UUP'],['VTI']])
         YahooHistory.update_quad_return()
         AlphaVantageHistory.update_quad_return()
         BitfinexHistory.update_quad_return()
