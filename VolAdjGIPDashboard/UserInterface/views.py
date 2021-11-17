@@ -60,7 +60,7 @@ def quad_performance(request, label):
 
     current_performance = quad_returns.get(data_end_date=latest_performance).score
     prior_performance = quad_returns.exclude(data_end_date=latest_performance).latest('data_end_date').score
-    performance_change = current_performance - prior_performance
+    performance_change = round(current_performance - prior_performance, 1)
     
     return render(request, 'UserInterface/performance.htm', {
         'label': label,
