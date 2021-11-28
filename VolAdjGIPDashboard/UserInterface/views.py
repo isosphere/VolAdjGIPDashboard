@@ -106,7 +106,21 @@ def all_symbol_summary(quad_allocation, latest_date):
 
             prior_week_ref = group.objects.filter(ticker=symbol).latest('date').date - datetime.timedelta(weeks=1)
             prior_week = prior_week_ref.isocalendar()[1]
-            last_week = group.objects.filter(ticker=symbol, date__week=prior_week).latest('date')
+
+            try:
+                last_week = group.objects.filter(ticker=symbol, date__week=prior_week).latest('date')
+            except group.DoesNotExist:
+                symbol_values[symbol] = (
+                    'N/A',
+                    '--.--',
+                    '--.--',
+                    '--.--',
+                    '--.--',
+                    '--.--',
+                    group.__name__ + '_' + symbol
+                )
+                continue
+            
             last_week_date, last_week_val = last_week.date, last_week.close_price
 
             # get realized vol as of last week - don't let the buy/sell targets move with current vol
@@ -282,14 +296,40 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         quad_ticker_lookup[expected_label] = quad
     
     quad_performance = dict()
+    
+    fear_sum_timeseries = dict()
+    brave_sum_timeseries = dict()
+
     for ticker_lookup, date, score in quad_returns.values_list('label', 'data_end_date', 'score'):
         quad = quad_ticker_lookup[ticker_lookup]
 
         if quad not in quad_performance:
             quad_performance[quad] = list()
         
-        quad_performance[quad].append(((date-current_quad_start).days, round(score, 2)))
+        current_day = (date-current_quad_start).days
+        quad_performance[quad].append((current_day, round(score, 2)))
 
+        if quad in (1, 2):
+            if current_day not in brave_sum_timeseries:
+                brave_sum_timeseries[current_day] = score
+            else:
+                brave_sum_timeseries[current_day] += score
+        elif quad in (3, 4):
+            if current_day not in fear_sum_timeseries:
+                fear_sum_timeseries[current_day] = score
+            else:
+                fear_sum_timeseries[current_day] += score
+
+    risk_indicator = list()
+    # assumption: day series in fear and brave are equal, so use one
+    for day in fear_sum_timeseries:
+        if day < 20:
+            continue # too volatile
+
+        total_sum = fear_sum_timeseries[day] + brave_sum_timeseries[day]
+        if total_sum != 0:
+            risk_indicator.append((day, round(100*fear_sum_timeseries[day] / total_sum, 0)))
+    
     prior_quad_performance = dict()
     for ticker_lookup, date, score in prior_quad_returns.values_list('label', 'data_end_date', 'score'):
         quad = quad_ticker_lookup[ticker_lookup]
@@ -331,11 +371,12 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
                 performance_change[quad]  = '--.-'
         except QuadReturn.DoesNotExist:
             performance_change[quad]  = '--.-'
-
+    
     return render(request, 'UserInterface/index.htm', {
         'current_quad_return': current_quad_return,
         'prior_quad_return': prior_quad_return,
         'daily_return': weekly_return,
+        'risk_indicator': risk_indicator,
 
         'quad_performance': quad_performance,
         'prior_quad_performance': prior_quad_performance,
