@@ -175,7 +175,7 @@
                 <div class="col-sm">
                     <div class="card">
                         <div class="card-body">
-                            <h5 class="card-title">Fear Metric</h5>
+                            <h5 class="card-title">Fear versus Complacency</h5>
                             <div class="card-text">
                                 <canvas id="fear_metric"></canvas>
                             </div>
@@ -450,28 +450,33 @@
                 data: {
                     datasets: [
                         {
-                            label: "{{date}}",
-                            
+                            label: "Fear",
                             data: [
-                                {% for datum in risk_indicator %}
+                                {% for datum in fear_timeseries %}
                                 {
                                     x: {{datum.0}},
                                     y: {{datum.1}}
                                 },
                                 {% endfor %}
                             ],
-                            {% if forloop.last %}
-                            pointBackgroundColor: ['#0000ff'],
-                            {% else %}
-                            pointBackgroundColor: ['#00cbff'],
-                            {% endif %}
-                            {% if forloop.last %}
-                            backgroundColor: '#000ff'
-                            
-                            {% else %}
-                            backgroundColor: '#00cbff'
-                            {% endif %}
+                            pointBackgroundColor: ['#ff0000'],
+                            backgroundColor: '#ff0000',
+                            borderColor: '#ff0000',
                         },
+                        {
+                            label: "Complacency",
+                            data: [
+                                {% for datum in brave_timeseries %}
+                                {
+                                    x: {{datum.0}},
+                                    y: {{datum.1}}
+                                },
+                                {% endfor %}
+                            ],
+                            pointBackgroundColor: ['#00ff00'],
+                            backgroundColor: '#00ff00',
+                            borderColor: '#00ff00',
+                        },                        
                     ]
                 },
                 options: {
@@ -485,25 +490,25 @@
                             },
                             ticks: {
                                 suggestedMax: 90.0,
-                                suggestedMin: 20.0,
+                                suggestedMin: 0.0,
                                 stepSize: 1.0,
                             }
                         }],
                         yAxes: [{
                             type: 'linear',
                             scaleLabel: {
-                                labelString: "Risk Metric",
+                                labelString: "Performance",
                                 display: true
                             },
                             ticks: {
-                                suggestedMax: 100.0,
-                                suggestedMin: 0.0,
+                                suggestedMax: 25.0,
+                                suggestedMin: -25.0,
                                 stepSize: 10.0,
                             }
                         }]
                     },
                     legend: {
-                        display: false,
+                        display: true,
                     }
                 }
             });

@@ -297,8 +297,10 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     
     quad_performance = dict()
     
-    fear_sum_timeseries = dict()
-    brave_sum_timeseries = dict()
+    fear_timeseries = list()
+    fear_idx = dict()
+    brave_timeseries = list()
+    brave_idx = dict()
 
     for ticker_lookup, date, score in quad_returns.values_list('label', 'data_end_date', 'score'):
         quad = quad_ticker_lookup[ticker_lookup]
@@ -310,26 +312,20 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         quad_performance[quad].append((current_day, round(score, 2)))
 
         if quad in (1, 2):
-            if current_day not in brave_sum_timeseries:
-                brave_sum_timeseries[current_day] = score
+            if current_day not in brave_idx:
+                brave_timeseries.append([current_day, score])
+                brave_idx[current_day] = len(brave_timeseries) - 1
             else:
-                brave_sum_timeseries[current_day] += score
+                if current_day == brave_timeseries[-1][0]:
+                    brave_timeseries[brave_idx[current_day]][1] += score
+                
         elif quad in (3, 4):
-            if current_day not in fear_sum_timeseries:
-                fear_sum_timeseries[current_day] = score
+            if current_day not in fear_idx:
+                fear_timeseries.append([current_day, score])
+                fear_idx[current_day] = len(fear_timeseries) - 1
             else:
-                fear_sum_timeseries[current_day] += score
+                fear_timeseries[fear_idx[current_day]][1] += score
 
-    risk_indicator = list()
-    # assumption: day series in fear and brave are equal, so use one
-    for day in fear_sum_timeseries:
-        if day < 20:
-            continue # too volatile
-
-        total_sum = fear_sum_timeseries[day] + brave_sum_timeseries[day]
-        if total_sum != 0:
-            risk_indicator.append((day, round(100*fear_sum_timeseries[day] / total_sum, 0)))
-    
     prior_quad_performance = dict()
     for ticker_lookup, date, score in prior_quad_returns.values_list('label', 'data_end_date', 'score'):
         quad = quad_ticker_lookup[ticker_lookup]
@@ -376,7 +372,8 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         'current_quad_return': current_quad_return,
         'prior_quad_return': prior_quad_return,
         'daily_return': weekly_return,
-        'risk_indicator': risk_indicator,
+        'fear_timeseries': fear_timeseries,
+        'brave_timeseries': brave_timeseries,
 
         'quad_performance': quad_performance,
         'prior_quad_performance': prior_quad_performance,
