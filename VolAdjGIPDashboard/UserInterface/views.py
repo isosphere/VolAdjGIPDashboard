@@ -316,7 +316,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
             
             quad_performance[quad].append((current_day, round(score, 2)))
 
-        if quad == 2:
+        if quad == 1:
             if current_day not in brave_idx:
                 brave_timeseries.append([current_day, score])
                 brave_idx[current_day] = len(brave_timeseries) - 1
