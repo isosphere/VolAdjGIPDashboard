@@ -894,8 +894,8 @@ class QuadForecasts(models.Model):
         max_date = usa_quads.index.get_level_values('date').max()
 
         usa_quads = usa_quads[
-            (usa_quads.index.get_level_values('date') <= usa_quads.index.get_level_values('quarter_end_date')) &
-            (usa_quads.index.get_level_values('date') > usa_quads.index.get_level_values('quarter_end_date') - pd.offsets.QuarterEnd(n=1))
+            (usa_quads.index.get_level_values('date') <= usa_quads.index.get_level_values('quarter_end_date'))
+            #&(usa_quads.index.get_level_values('date') > usa_quads.index.get_level_values('quarter_end_date') - pd.offsets.QuarterEnd(n=1))
         ]
 
         for row in usa_quads.itertuples():
