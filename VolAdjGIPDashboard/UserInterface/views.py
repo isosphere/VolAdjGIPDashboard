@@ -312,7 +312,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         
         if quad is not None:
             if quad not in quad_performance:
-                quad_performance[quad] = list()       
+                quad_performance[quad] = list()
             
             quad_performance[quad].append((current_day, round(score, 2)))
 
