@@ -9,9 +9,6 @@ class Command(BaseCommand):
         GDPForecast.update()
         YahooHistory.update()
         YahooHistory.calculate_stats()
-        # data was all made premium
-        #AlphaVantageHistory.update()
-        #AlphaVantageHistory.calculate_stats()
         BitfinexHistory.update()
         BitfinexHistory.calculate_stats()
         CoinGeckoHistory.update()

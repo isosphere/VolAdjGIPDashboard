@@ -5,7 +5,7 @@ import pandas as pd
 
 from sklearn.linear_model import LinearRegression
 
-from DataAcquisition.models import AlphaVantageHistory, YahooHistory, BitfinexHistory, QuadForecasts, QuadReturn, CommitmentOfTraders, CoinGeckoHistory
+from DataAcquisition.models import YahooHistory, BitfinexHistory, QuadForecasts, QuadReturn, CommitmentOfTraders, CoinGeckoHistory
 from django.db.models import F
 from django.conf import settings
 from django.contrib import messages
@@ -74,7 +74,7 @@ def quad_performance(request, label):
 def all_symbol_summary(quad_allocation, latest_date):
     symbol_values = dict()
 
-    for group in (YahooHistory, AlphaVantageHistory, BitfinexHistory, CoinGeckoHistory):
+    for group in (YahooHistory, BitfinexHistory, CoinGeckoHistory):
         if group.__name__ == 'YahooHistory':
             all_symbols = list()
             for quad in quad_allocation:
@@ -234,7 +234,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         messages.error(request, f"The net liquidating value you specified was invalid, so you get {default_net_liquidating_value} instead.")
     
     # Price and Standard Move Table
-    latest_rate = AlphaVantageHistory.objects.filter(ticker='USD.CAD').latest('date').close_price
+    latest_rate = YahooHistory.objects.filter(ticker='CAD=X').latest('date').close_price
     if currency == 'CAD':
         net_liquidating_value /= latest_rate
 

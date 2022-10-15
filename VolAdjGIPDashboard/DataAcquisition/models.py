@@ -395,72 +395,6 @@ class SecurityHistory(models.Model):
         abstract = True
 
 
-class AlphaVantageHistory(SecurityHistory):
-    @classmethod
-    def update(cls, tickers=None, clobber=False, start=None, end=None):
-        logger = logging.getLogger('AlphaVantageHistory.update')
-
-        if clobber is True or start is not None or end is not None:
-            logger.warning("Clobber, start, and end are not currently supported.")
-
-        if tickers is None:
-            tickers = cls.objects.all().values_list('ticker', flat=True).distinct()
-            logger.info(f"No ticker specified, so using all distinct tickers in the database: {tickers}")
-
-        for ticker in tickers:
-            from_currency, to_currency = ticker.split('.')
-
-            base_url = r"https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE"
-            request_url = f"{base_url}&from_currency={from_currency}&to_currency={to_currency}&apikey={settings.ALPHAVENTAGE_KEY}"
-
-            response = requests.get(request_url)
-            try:
-                results = response.json()['Realtime Currency Exchange Rate']
-            except KeyError:
-                logger.error(f"Failed to fetch data for ticker: {ticker}")
-                continue
-
-            updated, exchange_rate = parse(results['6. Last Refreshed']), results['5. Exchange Rate']
-
-            obj, created = cls.objects.get_or_create(date=updated.date(), ticker=ticker, defaults={'close_price':exchange_rate, 'updated': updated})
-            obj.close_price = exchange_rate
-            obj.realized_volatility = None # we'll calculate this later
-            obj.updated = updated
-            obj.save()
-    
-    @classmethod
-    def backfill(cls, tickers=None):
-        logger = logging.getLogger('AlphaVantageHistory.backfill')
-
-        if tickers is None:
-            tickers = cls.objects.all().values_list('ticker', flat=True).distinct()
-            logger.info(f"No ticker specified, so using all distinct tickers in the database: {tickers}")
-
-        for ticker in tickers:
-            from_currency, to_currency = ticker.split('.')
-
-            base_url = r"https://www.alphavantage.co/query?function=FX_DAILY"
-            request_url = f"{base_url}&from_symbol={from_currency}&to_symbol={to_currency}&apikey={settings.ALPHAVENTAGE_KEY}&outputsize=full"
-
-            response = requests.get(request_url)
-
-            try:
-                results = response.json()['Time Series FX (Daily)']
-            except KeyError:
-                logger.error("Error fetching backfill data for %s", ticker)
-                continue
-            
-            for date_str in results:
-                updated = parse(date_str)
-                exchange_rate = results[date_str]["4. close"]
-
-                obj, created = cls.objects.get_or_create(date=updated.date(), ticker=ticker, defaults={'close_price':exchange_rate, 'updated': updated})
-                obj.close_price = exchange_rate
-                obj.realized_volatility = None # we'll calculate this later
-                obj.updated = updated
-                obj.save()
-
-
 class BitfinexHistory(SecurityHistory):
     @classmethod
     def update(cls, tickers=None, clobber=False, start=None, end=None):
@@ -577,6 +511,7 @@ class YahooHistory(SecurityHistory):
         tickers = list(map(lambda x: [x.upper()], cls.objects.values_list('ticker', flat=True).distinct()))
         tickers.append(['QQQ', 'XLF', 'XLI'])
         tickers.append(['TLT', 'UUP', 'VPU'])
+        tickers.append(['CAD=X', 'SPY', 'DJP', 'XLE'])
 
         return tickers
     
