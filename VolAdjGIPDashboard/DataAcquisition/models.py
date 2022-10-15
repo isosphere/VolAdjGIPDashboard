@@ -452,7 +452,7 @@ class YahooHistory(SecurityHistory):
         tickers.append(['TLT', 'UUP', 'VPU'])
         tickers.append(['CAD=X', 'SPY', 'DJP', 'XLE'])
 
-        return tickers
+        return list(set(tickers))
     
     @classmethod
     def update(cls, tickers=None, clobber=False, start=None, end=None):
@@ -470,7 +470,7 @@ class YahooHistory(SecurityHistory):
             start = datetime.date(2008, 1, 1)
 
         if tickers is None:
-            tickers = cls.objects.all().values_list('ticker', flat=True).distinct()
+            tickers = cls.core_tickers()
             logger.info(f"No ticker specified, so using all distinct tickers in the database: {tickers}")
         
         for security in tickers:
