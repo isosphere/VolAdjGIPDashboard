@@ -293,6 +293,8 @@ class SecurityHistory(models.Model):
 
     @classmethod
     def weekly_return(cls, tickers):
+        logger = logging.getLogger('SecurityHistory.weekly_return')
+
         date_set = cls.objects.order_by('-date').values_list('date', flat=True).distinct()
         history = cls.objects.filter(ticker__in=tickers, date__in=date_set).order_by('date')
 
@@ -314,6 +316,7 @@ class SecurityHistory(models.Model):
                     try:
                         market_value += prior_positioning[leg]*(history.get(ticker=leg, date=date).close_price - prior_cost_basis[leg])
                     except cls.DoesNotExist:
+                        logger.error("Unable to get history for ticker %s for date %s", leg, date)
                         return None
 
             market_value_history.append(market_value)
@@ -325,7 +328,11 @@ class SecurityHistory(models.Model):
             prior_positioning = new_positioning.copy()
 
             for leg in new_positioning:
-                prior_cost_basis[leg] = history.get(ticker=leg, date=date).close_price
+                try:
+                    prior_cost_basis[leg] = history.get(ticker=leg, date=date).close_price
+                except cls.DoesNotExist:
+                    logger.error("Unable to get history for ticker %s for date %s", leg, date)
+                    return None
         
         end_market_value = market_value
 
