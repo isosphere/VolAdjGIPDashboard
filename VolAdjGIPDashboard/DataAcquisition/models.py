@@ -208,8 +208,8 @@ class SecurityHistory(models.Model):
         dataframe = cls.dataframe(max_date=max_date, tickers=tickers, lookback=lookback)
 
         # compute realized vol
-        dataframe["log_return"] = dataframe.groupby(level='ticker').close_price.apply(np.log) - dataframe.groupby(level='ticker').close_price.shift(1).apply(np.log)
-        dataframe["realized_vol"] = dataframe.groupby(level='ticker').log_return.rolling(lookback).std(ddof=0).droplevel(0)
+        dataframe["log_return"] = dataframe.groupby(level='ticker', group_keys=False).close_price.apply(np.log) - dataframe.groupby(level='ticker', group_keys=False).close_price.shift(1).apply(np.log)
+        dataframe["realized_vol"] = dataframe.groupby(level='ticker', group_keys=False).log_return.rolling(lookback).std(ddof=0).droplevel(0)
 
         for security in tickers:
             subset = dataframe[dataframe.index.get_level_values('ticker') == security]
@@ -366,10 +366,10 @@ class SecurityHistory(models.Model):
         all_data = cls.dataframe().groupby([
             pd.Grouper(level='ticker'),
             pd.Grouper(level='date', freq='W')
-        ]).last().apply(np.log)
+        ], group_keys=False).last().apply(np.log)
 
-        all_data['prior'] = all_data.groupby('ticker').close_price.shift(1)
-        all_data = (all_data.close_price - all_data.prior).groupby('ticker').rolling(lookback).std(ddof=0).droplevel(0).dropna()
+        all_data['prior'] = all_data.groupby('ticker', group_keys=False).close_price.shift(1)
+        all_data = (all_data.close_price - all_data.prior).groupby('ticker', group_keys=False).rolling(lookback).std(ddof=0).droplevel(0).dropna()
 
         for date, ticker in missing_sections:
             weekending = (date + pd.offsets.Week(weekday=6)).date()
@@ -662,7 +662,7 @@ class GDPForecast(models.Model):
         
         gdp_forecasts = dataframe.GDP.resample(rule='Q', level='Quarter').mean()
 
-        for quarter, gdp in gdp_forecasts.iteritems():
+        for quarter, gdp in gdp_forecasts.items():
             cls.objects.update_or_create(
                 quarter_end_date = quarter.date(), 
                 date = url_time, 
@@ -676,6 +676,7 @@ class GDPForecast(models.Model):
         latest_date = cls.objects.latest('date').date
 
         dataset = pd.DataFrame.from_records(cls.objects.filter(date=latest_date).values())
+        dataset.quarter_end_date = pd.to_datetime(dataset.quarter_end_date)
         dataset.set_index('quarter_end_date', inplace=True)
 
         return dataset
@@ -706,7 +707,7 @@ class CPIForecast(models.Model):
         
         cpi_forecasts = dataframe.CPI.resample(rule='Q', level='Quarter').mean()
 
-        for quarter, cpi in cpi_forecasts.iteritems():
+        for quarter, cpi in cpi_forecasts.items():
             cls.objects.update_or_create(
                 quarter_end_date = quarter.date(), 
                 date = url_time, 
@@ -720,6 +721,7 @@ class CPIForecast(models.Model):
         latest_date = cls.objects.latest('date').date
 
         dataset = pd.DataFrame.from_records(cls.objects.filter(date=latest_date).values())
+        dataset.quarter_end_date = pd.to_datetime(dataset.quarter_end_date)
         dataset.set_index('quarter_end_date', inplace=True)
 
         return dataset
@@ -762,7 +764,7 @@ class QuadForecasts(models.Model):
 
         # align the FRED quarterly dates to Pandas quarterly dates
         # each index value will be the last day of a quarter. i.e. 2019-06-30 is Q2 2019.
-        gdp_data.index = pd.to_datetime(gdp_data.index) + pd.offsets.QuarterEnd(n=0)
+        gdp_data.index = gdp_data.index + pd.offsets.QuarterEnd(n=0)
         gdp_data = gdp_data.resample('Q').asfreq()
 
         # CPI, all items, urban, not seasonally adjusted. Monthly.
@@ -799,7 +801,6 @@ class QuadForecasts(models.Model):
         data = GDPForecast.dataframe() # y/y GDP. quarterly data. 
         latest_date = data.date.max()
         data['growth'] = data.gdp / 100 + 1
-        data.index = pd.to_datetime(data.index)
 
         gdp_df = pd.DataFrame({
             'date': actual_gdp.index + pd.offsets.QuarterEnd(n=4), # pre-shift, for easy multiplying y/y later
@@ -810,6 +811,7 @@ class QuadForecasts(models.Model):
         first_order_estimates['number'] = (first_order_estimates.growth * first_order_estimates.prior_actual_gdp)
         first_order_estimates.drop(['prior_actual_gdp', 'id', 'gdp'], inplace=True, axis='columns')
         first_order_estimates.reset_index(inplace=True)
+        first_order_estimates.date = pd.to_datetime(first_order_estimates.date)
         first_order_estimates.set_index(['quarter_end_date', 'date'], inplace=True)
 
         actual_current_gdp = pd.DataFrame({
@@ -818,8 +820,11 @@ class QuadForecasts(models.Model):
             'actual_gdp': actual_gdp.values
         }).set_index(['quarter_end_date', 'date'])
 
-        #second_order_estimates = pd.concat([forecasted_gdp, first_order_estimates], join='outer', sort=True, axis=1)
-        second_order_estimates = pd.concat([actual_current_gdp, first_order_estimates], levels=['quarter_end_date', 'date'], axis=0, sort=True)
+        second_order_estimates = pd.concat(
+            objs=[actual_current_gdp, first_order_estimates],
+            keys=('quarter_end_date', 'date'),
+            axis=0, sort=True
+        )
 
         second_order_estimates = second_order_estimates.assign(
             best_estimate = np.where(
@@ -872,7 +877,7 @@ class QuadForecasts(models.Model):
 
         dataframe.dropna(inplace=True)
         dataframe.set_index(['quarter_end_date', 'date'], inplace=True)
-        dataframe['quad'] = dataframe.groupby(['quarter_end_date', 'date']).apply(cls.__determine_quad_multi_index).rename('quad')
+        dataframe['quad'] = dataframe.groupby(['quarter_end_date', 'date'], group_keys=False).apply(cls.__determine_quad_multi_index).rename('quad')
 
         # drop confusing intermediates
         dataframe.drop([
