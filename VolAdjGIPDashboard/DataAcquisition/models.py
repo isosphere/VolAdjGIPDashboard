@@ -495,6 +495,13 @@ class YahooHistory(SecurityHistory):
             except KeyError:
                 logger.error(f"No data found for {security}")
                 continue
+
+            if dataframe.empty:
+                logger.error(f"No data found for {security} - dataframe is empty")
+                continue
+            elif 'Close' not in dataframe.columns:
+                logger.error(f"No data found for {security} - no Close column found")
+                continue
             
             # take credit for dividends!
             if 'Adj Close' in dataframe.columns:
