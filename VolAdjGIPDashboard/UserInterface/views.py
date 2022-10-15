@@ -5,7 +5,7 @@ import pandas as pd
 
 from sklearn.linear_model import LinearRegression
 
-from DataAcquisition.models import YahooHistory, BitfinexHistory, QuadForecasts, QuadReturn, CommitmentOfTraders, CoinGeckoHistory
+from DataAcquisition.models import YahooHistory, BitfinexHistory, QuadForecasts, QuadReturn, CommitmentOfTraders
 from django.db.models import F
 from django.conf import settings
 from django.contrib import messages
@@ -74,7 +74,7 @@ def quad_performance(request, label):
 def all_symbol_summary(quad_allocation, latest_date):
     symbol_values = dict()
 
-    for group in (YahooHistory, BitfinexHistory, CoinGeckoHistory):
+    for group in (YahooHistory, BitfinexHistory):
         if group.__name__ == 'YahooHistory':
             all_symbols = list()
             for quad in quad_allocation:

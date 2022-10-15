@@ -444,67 +444,6 @@ class BitfinexHistory(SecurityHistory):
         unique_together = [['ticker', 'date']]
 
 
-class CoinGeckoPair(models.Model):
-    address = models.TextField(help_text="The contract address of the token represented by this symbol", unique=True)
-    coin_id = models.TextField(help_text="The CoinGecko ID for this token", blank=True)
-    ticker = models.TextField(help_text="Descriptive ticker, used for display only")
-    counter_currency = models.TextField(default="eth", help_text="Currency to return prices relative to")
-
-    @classmethod
-    def update(cls):
-        blank_identifiers = cls.objects.filter(coin_id__exact='')
-        all_addresses = set(map(lambda x: x.lower(), blank_identifiers.values_list('address', flat=True)))
-
-        url = r'https://api.coingecko.com/api/v3'
-        response = requests.get(f'{url}/coins/list?include_platform=true')
-        all_tokens = response.json()
-        
-        for token in all_tokens:
-            if "ethereum" in token["platforms"] and token["platforms"]["ethereum"] and token["platforms"]["ethereum"] in all_addresses:
-                instance = blank_identifiers.get(address=token["platforms"]["ethereum"])
-                instance.coin_id = token["id"]
-                instance.save()
-
-    
-    def __str__(self):
-        return f"{self.ticker} ({self.address})"
-
-
-class CoinGeckoHistory(SecurityHistory):
-    pair = models.ForeignKey('DataAcquisition.CoinGeckoPair', on_delete=models.CASCADE)
-
-    @classmethod
-    def update(cls, coins=None, days='max'):
-        logger = logging.getLogger('CoinGeckoHistory.update')
-        
-        if coins is None:
-            coins = CoinGeckoPair.objects.all()
-            logger.info(f"No ticker specified, so using all distinct")
-
-        url = r'https://api.coingecko.com/api/v3'
-        
-        for coin in coins:
-            if not coin.coin_id:
-                logger.info("Coin ID is blank for %s, fetching and updating database.", coin.ticker)
-                CoinGeckoPair.update()
-                coin.refresh_from_db()
-                assert(len(coin.coin_id) > 0)
-
-            runtime = datetime.datetime.now()
-            response = requests.get(f'{url}/coins/{coin.coin_id}/market_chart?vs_currency=usd&days={days}&interval=daily')
-            prices = response.json()["prices"]
-
-            for epoch_time, price in prices:
-                date = datetime.datetime.fromtimestamp(epoch_time/1000, tz=pytz.utc).date()
-                obj, _created = cls.objects.get_or_create(date=date, pair=coin, defaults={'close_price':price, 'updated': runtime, 'ticker':coin.ticker.upper() })
-                obj.close_price = price
-                obj.realized_volatility = None # we'll calculate this later
-                obj.updated = runtime
-                obj.save() # it would be faster if we deferred these saves and did a bulk or atomic operation
-    class Meta:
-        unique_together = [['pair', 'date']]
-
-
 class YahooHistory(SecurityHistory):
     @classmethod
     def core_tickers(cls):
