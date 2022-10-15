@@ -457,9 +457,10 @@ class YahooHistory(SecurityHistory):
         tickers = list(map(lambda x: [x.upper()], cls.objects.values_list('ticker', flat=True).distinct()))
         tickers.append(['QQQ', 'XLF', 'XLI'])
         tickers.append(['TLT', 'UUP', 'VPU'])
-        tickers.append(['CAD=X', 'SPY', 'DJP', 'XLE'])
+        for ticker in ('CAD=X', 'SPY', 'DJP', 'XLE'):
+            tickers.append([ticker.upper()])
 
-        return list(set(tickers))
+        return tickers
     
     @classmethod
     def update(cls, tickers=None, clobber=False, start=None, end=None):
