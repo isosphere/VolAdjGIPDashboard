@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import logging
 import io
+import itertools
 import math
 import requests
 import time
@@ -478,7 +479,7 @@ class YahooHistory(SecurityHistory):
             start = datetime.date(2008, 1, 1)
 
         if tickers is None:
-            tickers = cls.core_tickers()
+            tickers = set(itertools.chain(*cls.core_tickers()))
             logger.info(f"No ticker specified, so using all distinct tickers in the database: {tickers}")
         
         for security in tickers:
