@@ -22,8 +22,6 @@ import quandl
 import pandas as pd
 import numpy as np
 
-yfinance.pdr_override()
-
 class QuadReturn(models.Model):
     quarter_end_date = models.DateField()
     data_start_date = models.DateField()
@@ -470,7 +468,7 @@ class YahooHistory(SecurityHistory):
         if isinstance(tickers, str):
             tickers = [tickers]
 
-        end = end if end is not None else datetime.datetime.now()
+        end = end if end is not None else datetime.date.today()
         logger.info(f"Final date of interest for update: {end}")
         if start is None and not clobber:
             logger.info(f"start not specified with clobber mode disabled, will update since last record in database.")
@@ -492,7 +490,7 @@ class YahooHistory(SecurityHistory):
                     pass
             
             try:
-                dataframe = web.get_data_yahoo(security, start=start, end=end)
+                dataframe = yfinance.download(tickers=security, interval='1d', start=start, end=end, auto_adjust=True)
             except KeyError:
                 logger.error(f"No data found for {security}")
                 continue
