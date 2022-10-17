@@ -487,7 +487,7 @@ class YahooHistory(SecurityHistory):
             except cls.DoesNotExist:
                 pass
 
-        dataframe = yfinance.download(tickers=tickers, interval='1d', start=start, end=end, auto_adjust=True)
+        dataframe = yfinance.download(tickers=tickers, interval='1d', start=start, end=end, auto_adjust=True, progress=False)
         for security in tickers:
             logger.info(f"Updating {security}...")
             
