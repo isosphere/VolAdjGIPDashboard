@@ -491,7 +491,11 @@ class YahooHistory(SecurityHistory):
         for security in tickers:
             logger.info(f"Updating {security}...")
             
-            subdf = dataframe.loc[:, ('Close', security)].dropna()
+            try:
+                subdf = dataframe.loc[:, ('Close', security)].dropna()
+            except KeyError:
+                logger.error(f"No data found for {security} - dataframe is empty")
+                continue
 
             if subdf.empty:
                 logger.error(f"No data found for {security} - dataframe is empty")
