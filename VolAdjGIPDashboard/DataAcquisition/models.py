@@ -11,6 +11,7 @@ from dateutil.parser import parse
 import pytz
 
 from django.db import models
+from django.db.models import Max
 from django.db.utils import IntegrityError
 from django.conf import settings
 
@@ -469,49 +470,38 @@ class YahooHistory(SecurityHistory):
             tickers = [tickers]
 
         end = end if end is not None else datetime.date.today()
-        logger.info(f"Final date of interest for update: {end}")
+        logger.info("Final date of interest for update: %s", end)
         if start is None and not clobber:
-            logger.info(f"start not specified with clobber mode disabled, will update since last record in database.")
+            logger.info("start not specified with clobber mode disabled, will update since last record in database.")
 
         if start is None and clobber:
             start = datetime.date(2008, 1, 1)
 
         if tickers is None:
             tickers = set(itertools.chain(*cls.core_tickers()))
-            logger.info(f"No ticker specified, so using all distinct tickers in the database: {tickers}")
-        
+            logger.info("No ticker specified, so using all distinct tickers in the database: %s", tickers)
+
+        if start is None and not clobber:
+            try:
+                start = min(YahooHistory.objects.filter(ticker__in=tickers).values('ticker').distinct().annotate(Max('date')).values_list('date__max', flat=True))
+            except cls.DoesNotExist:
+                pass
+
+        dataframe = yfinance.download(tickers=tickers, interval='1d', start=start, end=end, auto_adjust=True)
         for security in tickers:
             logger.info(f"Updating {security}...")
-
-            if start is None and not clobber:
-                try:
-                    start = cls.objects.filter(ticker=security).latest('date').date
-                except cls.DoesNotExist:
-                    pass
             
-            try:
-                dataframe = yfinance.download(tickers=security, interval='1d', start=start, end=end, auto_adjust=True)
-            except KeyError:
-                logger.error(f"No data found for {security}")
-                continue
+            subdf = dataframe.loc[:, ('Close', security)].dropna()
 
-            if dataframe.empty:
+            if subdf.empty:
                 logger.error(f"No data found for {security} - dataframe is empty")
                 continue
-            elif 'Close' not in dataframe.columns:
-                logger.error(f"No data found for {security} - no Close column found")
-                continue
-            
-            # take credit for dividends!
-            if 'Adj Close' in dataframe.columns:
-                dataframe = dataframe.drop('Close', axis=1).rename({"Adj Close": "Close"}, axis=1)
 
             if clobber:
                 cls.objects.filter(date__gte=start, date__lte=end, ticker=security).delete()
             
-            for row in dataframe.itertuples():
-                date, close_price = row.Index, row.Close
-                obj, created = cls.objects.get_or_create(date=date, ticker=security, defaults={'close_price':close_price, 'updated': datetime.datetime.now()})
+            for date, close_price in subdf.items():
+                obj, created = cls.objects.get_or_create(date=date.date(), ticker=security, defaults={'close_price':close_price, 'updated': datetime.datetime.now()})
                 obj.close_price = close_price
                 obj.realized_volatility = None # we'll calculate this later
                 obj.realized_volatility_week = None
