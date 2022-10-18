@@ -467,6 +467,7 @@
                     {% for ticker, values in signal_data.items %}
                         {
                             label: "{{ticker}}",
+                            lineTension: 0,
                             fill: false,
                             data: [
                                 {% for row in values %}
