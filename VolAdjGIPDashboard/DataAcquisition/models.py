@@ -486,16 +486,18 @@ class YahooHistory(SecurityHistory):
                 start = min(YahooHistory.objects.filter(ticker__in=tickers).values('ticker').distinct().annotate(Max('date')).values_list('date__max', flat=True))
             except cls.DoesNotExist:
                 pass
-
-        dataframe = yfinance.download(tickers=tickers, interval='1d', start=start, end=end, auto_adjust=True, progress=False)
+        
+        dataframe = yfinance.download(tickers=tickers, interval='1d', start=start, end=end + datetime.timedelta(days=1), auto_adjust=True, progress=False).resample('D').last()
         for security in tickers:
             logger.info(f"Updating {security}...")
-            
             try:
                 subdf = dataframe.loc[:, ('Close', security)].dropna()
             except KeyError:
-                logger.error(f"No data found for {security} - dataframe is empty")
-                continue
+                if len(dataframe.columns) <= 5:
+                    subdf = dataframe.Close
+                else:
+                    logger.error(f"No data found for {security} - dataframe is empty")
+                    continue
 
             if subdf.empty:
                 logger.error(f"No data found for {security} - dataframe is empty")
