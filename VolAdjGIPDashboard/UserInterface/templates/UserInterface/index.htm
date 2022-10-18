@@ -232,7 +232,7 @@
             <div class="col-sm">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Posterior "Bullishness" - Max Position = {{max_position}}%</h5>
+                        <h5 class="card-title">Posterior "Bullishness" - Max Exposure = {{max_position}}%</h5>
                         <div class="card-text">
                             <canvas id="posterior_bullishness"></canvas>
                         </div>
@@ -309,6 +309,7 @@
                                     <tr>
                                         <th>Symbol</th>
                                         <th>Ratio</th>
+                                        <th>Signal %</th>
                                         <th data-toggle="tooltip" data-placement="top" title="0 = at buy level, 100 = at sell level, 50 = price unchanged from last week">Heat %</th>
                                         <th>1-σ Week Buy</th>
                                         <th>Price</th>
@@ -321,6 +322,7 @@
                                     <tr>
                                         <td><a href="/performance/{{value.6}}">{{symbol}}</a></td>
                                         <td>{{value.5}}</td>
+                                        <td>{{value.7}}</td>
                                         <td>{{value.4}}</td>
                                         <td>${{value.2}}</td>
                                         <td class="alert-primary">${{value.0}}</td>

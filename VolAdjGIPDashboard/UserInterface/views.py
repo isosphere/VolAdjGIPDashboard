@@ -92,7 +92,7 @@ def all_symbol_summary(quad_allocation, latest_date):
             try:
                 symbol_data = group.objects.get(ticker=symbol, date=latest_date)
             except group.DoesNotExist:
-                symbol_values[symbol] = (
+                symbol_values[symbol] = [
                     'N/A',
                     '--.--',
                     '--.--',
@@ -100,7 +100,7 @@ def all_symbol_summary(quad_allocation, latest_date):
                     '--.--',
                     '--.--',
                     group.__name__ + '_' + symbol
-                )
+                ]
                 continue
 
             prior_week_ref = group.objects.filter(ticker=symbol).latest('date').date - datetime.timedelta(weeks=1)
@@ -109,7 +109,7 @@ def all_symbol_summary(quad_allocation, latest_date):
             try:
                 last_week = group.objects.filter(ticker=symbol, date__week=prior_week).latest('date')
             except group.DoesNotExist:
-                symbol_values[symbol] = (
+                symbol_values[symbol] = [
                     'N/A',
                     '--.--',
                     '--.--',
@@ -117,7 +117,7 @@ def all_symbol_summary(quad_allocation, latest_date):
                     '--.--',
                     '--.--',
                     group.__name__ + '_' + symbol
-                )
+                ]
                 continue
             
             last_week_date, last_week_val = last_week.date, last_week.close_price
@@ -135,7 +135,7 @@ def all_symbol_summary(quad_allocation, latest_date):
                 current_performance = None
 
             if last_week_vol is not None:
-                symbol_values[symbol] = (
+                symbol_values[symbol] = [
                     round(symbol_data.close_price, 2), 
                     round(100*last_week_vol, 2), 
                     round(last_week_val * ( 1 - last_week_vol), 2),
@@ -143,9 +143,9 @@ def all_symbol_summary(quad_allocation, latest_date):
                     int(round(100*(symbol_data.close_price - last_week_val*(1 - last_week_vol)) / ( last_week_val * ( 1 + last_week_vol) - last_week_val * ( 1 - last_week_vol)), 0)),
                     '--.--' if not current_performance else round(current_performance, 2),
                     group.__name__ + '_' + symbol
-                )
+                ]
             else:
-                symbol_values[symbol] = (
+                symbol_values[symbol] = [
                     round(symbol_data.close_price, 2), 
                     '--.--', 
                     '--.--',
@@ -153,7 +153,7 @@ def all_symbol_summary(quad_allocation, latest_date):
                     '--.--',
                     '--.--' if not current_performance else round(current_performance, 2),
                     group.__name__ + '_' + symbol
-                )
+                ]
 
     return symbol_values
 
@@ -383,14 +383,20 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         analysis_label__contains='market_continuous_multinormal_functional.r .posterior_bullishness'
     ).order_by('ticker', 'run_time')
 
+    selected_tickers = {'QQQ', 'XLF', 'XLI', 'SPY', 'GLD', 'XLU', 'TLT', 'CAD=X'}
+
     signal_structure = {}
     for ticker in set(signal_data.values_list('ticker', flat=True)):
-        signal_structure[ticker] = []
-        for row in signal_data.filter(ticker__contains=ticker):
-            signal_structure[ticker].append({
-                'timestamp': row.run_time,
-                'signal': row.signal
-            })
+        if ticker in selected_tickers:
+            signal_structure[ticker] = []
+            for row in signal_data.filter(ticker__contains=ticker):
+                signal_structure[ticker].append({
+                    'timestamp': row.run_time,
+                    'signal': row.signal
+                })
+        symbol_values[ticker].append(
+            round(100*signal_data.filter(ticker__contains=ticker).latest('run_time').signal, 1)
+        )
 
     max_position = round(SignalTimeSeries.objects.filter(
         target_date__day=quarter_end_date.day,
