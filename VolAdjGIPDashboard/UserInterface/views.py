@@ -5,7 +5,7 @@ import pandas as pd
 
 from sklearn.linear_model import LinearRegression
 
-from DataAcquisition.models import YahooHistory, BitfinexHistory, QuadForecasts, QuadReturn, CommitmentOfTraders
+from DataAcquisition.models import YahooHistory, BitfinexHistory, QuadForecasts, QuadReturn, CommitmentOfTraders, SignalTimeSeries
 from django.db.models import F
 from django.conf import settings
 from django.contrib import messages
@@ -82,7 +82,6 @@ def all_symbol_summary(quad_allocation, latest_date):
                     if symbol not in all_symbols:
                         all_symbols.append(symbol)
 
-            #all_symbols += ['XLV', 'SHY', 'EDV', 'IWM', 'PSP', 'RSP', 'JNK', 'FXB', 'EWG', 'EWA', 'ITB', 'TIP', 'VTI', 'BND', 'XLE']
             all_symbols += list(group.objects.all().values_list('ticker', flat=True).distinct())
         else:
             all_symbols = list(group.objects.all().values_list('ticker', flat=True).distinct())
@@ -377,6 +376,29 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         except QuadReturn.DoesNotExist:
             performance_change[quad]  = '--.-'
     
+    signal_data = SignalTimeSeries.objects.filter(
+        target_date__day=quarter_end_date.day,
+        target_date__month=quarter_end_date.month,
+        target_date__year=quarter_end_date.year,
+        analysis_label__contains='market_continuous_multinormal_functional.r .posterior_bullishness'
+    ).order_by('ticker', 'run_time')
+
+    signal_structure = {}
+    for ticker in set(signal_data.values_list('ticker', flat=True)):
+        signal_structure[ticker] = []
+        for row in signal_data.filter(ticker__contains=ticker):
+            signal_structure[ticker].append({
+                'timestamp': row.run_time,
+                'signal': row.signal
+            })
+
+    max_position = round(SignalTimeSeries.objects.filter(
+        target_date__day=quarter_end_date.day,
+        target_date__month=quarter_end_date.month,
+        target_date__year=quarter_end_date.year,
+        analysis_label__contains='market_continuous_multinormal_functional.r .max_position'
+    ).latest('run_time').signal*100, 1)
+    
     return render(request, 'UserInterface/index.htm', {
         'current_quad_return': current_quad_return,
         'prior_quad_return': prior_quad_return,
@@ -404,5 +426,8 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
 
         'latest_cot_date': latest_cot_date,
         'cot_data': cot_data,
-        'GOOGLE_ID': settings.GOOGLE_ID
+        'GOOGLE_ID': settings.GOOGLE_ID,
+
+        'signal_data': signal_structure,
+        'max_position': max_position
     })

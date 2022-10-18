@@ -229,6 +229,18 @@
             </div>
         </div>
         <div class="row">
+            <div class="col-sm">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Posterior "Bullishness" - Max Position = {{max_position}}%</h5>
+                        <div class="card-text">
+                            <canvas id="posterior_bullishness"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
             <div class="col-lg">
                 <div class="card">
                     <div class="card-body">
@@ -373,7 +385,9 @@
                 $('[data-toggle="tooltip"]').tooltip()
             })
         </script>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.0/dist/Chart.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-colorschemes"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
         <script>
             var ctx_quad = document.getElementById('quad_updates').getContext('2d');
             var scatterChart = new Chart(ctx_quad, {
@@ -383,7 +397,6 @@
                     {% for date, gdp_roc, cpi_roc in roc_data %}
                         {
                             label: "{{date}}",
-                            
                             data: [
                                 {
                                     x: {{cpi_roc|floatformat}},
@@ -441,6 +454,46 @@
                         position: 'right'
                     }
                 }
+            });
+        </script>
+        <script>
+            var ctx_bullish = document.getElementById('posterior_bullishness').getContext('2d');
+            var lineChart = new Chart(ctx_bullish, {
+                type: 'line',
+                data: {
+                    datasets: [
+                    {% for ticker, values in signal_data.items %}
+                        {
+                            label: "{{ticker}}",
+                            fill: false,
+                            data: [
+                                {% for row in values %}
+                                {
+                                    x: "{{row.timestamp.date.isoformat}}",
+                                    y: 100*{{row.signal}}
+                                },
+                                {% endfor %}
+                        ]
+                    },
+                    {% endfor %}
+                ]
+                },
+                options: {
+                    scales: {
+                        yAxes: [{
+                            min: -100,
+                            max: 100,
+                        }],
+                        xAxes: [{
+                            type: 'time'
+                        }]
+                    }
+                },
+                plugins: {
+                    colorschemes: {
+                        scheme: 'brewer.Paired12',
+                    },
+                },
             });
         </script>
         <script>
