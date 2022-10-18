@@ -891,3 +891,16 @@ class CommitmentOfTraders(models.Model):
 
     class Meta:
         unique_together = [['symbol', 'date']]
+
+
+class SignalTimeSeries(models.Model):
+    id = models.BigIntegerField(primary_key=True)
+    run_time = models.DateTimeField(null=False)
+    analysis_label = models.TextField(null=False)
+    ticker = models.TextField(null=True)
+    signal = models.FloatField(null=True)
+    target_date = models.DateField(null=False)
+
+    class Meta:
+        db_table = 'signal_time_series'
+        managed = False
