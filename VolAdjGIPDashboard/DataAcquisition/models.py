@@ -197,6 +197,7 @@ class SecurityHistory(models.Model):
     @classmethod
     def equal_volatility_position(cls, tickers, lookback=28, target_value=10000, max_date=None):
         logger = logging.getLogger('SecurityHistory.equal_volatility_position')
+        logger.setLevel('DEBUG')
         logger.debug("function triggered for tickers=[%s], lookback=%s, target_value=%s, max_date=%s", tickers, lookback, target_value, max_date)
 
         standard_move = dict()
@@ -212,7 +213,7 @@ class SecurityHistory(models.Model):
         dataframe["realized_vol"] = dataframe.groupby(level='ticker', group_keys=False).log_return.rolling(lookback).std(ddof=0).droplevel(0)
 
         for security in tickers:
-            subset = dataframe[dataframe.index.get_level_values('ticker') == security]
+            subset = dataframe[dataframe.index.get_level_values('ticker') == security].dropna()
             if subset.empty:
                 logger.error("No data for one of the legs ('%s', max date %s), skipping.", security, max_date)
                 raise ValueError
@@ -317,7 +318,7 @@ class SecurityHistory(models.Model):
                         market_value += prior_positioning[leg]*(history.get(ticker=leg, date=date).close_price - prior_cost_basis[leg])
                     except cls.DoesNotExist:
                         logger.error("Unable to get history for ticker %s for date %s", leg, date)
-                        return None
+                        continue
 
             market_value_history.append(market_value)
 
@@ -332,7 +333,7 @@ class SecurityHistory(models.Model):
                     prior_cost_basis[leg] = history.get(ticker=leg, date=date).close_price
                 except cls.DoesNotExist:
                     logger.error("Unable to get history for ticker %s for date %s", leg, date)
-                    return None
+                    continue
         
         end_market_value = market_value
 
