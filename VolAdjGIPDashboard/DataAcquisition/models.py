@@ -313,6 +313,12 @@ class SecurityHistory(models.Model):
             # liquidate
             if prior_positioning is not None:
                 for leg in prior_positioning:
+                    if leg not in prior_positioning:
+                        logger.error("%s is not in prior_positioning, skipping", leg)
+                        continue
+                    if leg not in prior_cost_basis:
+                        logger.error("%s is not in prior_cost_basis, skipping", leg)
+                        continue
                     try:
                         market_value += prior_positioning[leg]*(history.get(ticker=leg, date=date).close_price - prior_cost_basis[leg])
                     except cls.DoesNotExist:
