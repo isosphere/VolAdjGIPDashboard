@@ -197,7 +197,6 @@ class SecurityHistory(models.Model):
     @classmethod
     def equal_volatility_position(cls, tickers, lookback=28, target_value=10000, max_date=None):
         logger = logging.getLogger('SecurityHistory.equal_volatility_position')
-        logger.setLevel('DEBUG')
         logger.debug("function triggered for tickers=[%s], lookback=%s, target_value=%s, max_date=%s", tickers, lookback, target_value, max_date)
 
         standard_move = dict()
