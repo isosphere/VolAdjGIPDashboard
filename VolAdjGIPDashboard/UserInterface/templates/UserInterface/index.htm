@@ -472,7 +472,7 @@
                             data: [
                                 {% for row in values %}
                                 {
-                                    x: "{{row.timestamp.date.isoformat}}",
+                                    x: "{{row.timestamp.isoformat}}",
                                     y: 100*{{row.signal}}
                                 },
                                 {% endfor %}
