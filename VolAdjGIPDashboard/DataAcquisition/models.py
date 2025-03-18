@@ -488,11 +488,10 @@ class YahooHistory(SecurityHistory):
             logger.info("No ticker specified, so using all distinct tickers in the database: %s", tickers)
 
         if start is None and not clobber:
-            try:
-                start = min(YahooHistory.objects.filter(ticker__in=tickers).values('ticker').distinct().annotate(Max('date')).values_list('date__max', flat=True))
-            except cls.DoesNotExist:
-                pass
-        
+            existing = YahooHistory.objects.filter(ticker__in=tickers).values('ticker').distinct().annotate(Max('date')).values_list('date__max', flat=True)
+            if existing.exists():
+                start = min(existing)
+
         dataframe = yfinance.download(tickers=tickers, interval='1d', start=start, end=end + datetime.timedelta(days=1), auto_adjust=True, progress=False).resample('D').last()
         for security in tickers:
             logger.info(f"Updating {security}...")
