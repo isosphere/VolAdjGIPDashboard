@@ -347,7 +347,7 @@ class SecurityHistory(models.Model):
         return weekly_return
 
     @classmethod
-    def dataframe(cls, max_date=None, tickers=None, lookback=None):
+    def dataframe(cls, max_date = None, tickers = None, lookback = None) -> pd.DataFrame:
         results = cls.objects.all().order_by('-date')
 
         if not results.exists():
@@ -383,7 +383,13 @@ class SecurityHistory(models.Model):
         missing_sections = set(cls.objects.filter(realized_volatility__isnull=True).values_list('date', 'ticker').distinct())
         
         # calculate all
-        all_data = cls.dataframe().groupby([
+        all_data = cls.dataframe()
+        
+        if all_data.empty:
+            logger.warn("Can't calculate stats when we have no data.")
+            return
+        
+        all_data = all_data.groupby([
             pd.Grouper(level='ticker'),
             pd.Grouper(level='date', freq='W')
         ], group_keys=False).last().apply(np.log)
@@ -420,7 +426,7 @@ class BitfinexHistory(SecurityHistory):
     def update(cls, tickers=None, clobber=False, start=None, end=None):
         logger = logging.getLogger('BitfinexHistory.update')
 
-        bfx = Client(logLevel='INFO')
+        bfx = Client()
 
         if clobber is True:
             logger.warning("Clobber not currently supported.")
