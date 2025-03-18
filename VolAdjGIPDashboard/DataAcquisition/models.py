@@ -349,13 +349,20 @@ class SecurityHistory(models.Model):
     @classmethod
     def dataframe(cls, max_date=None, tickers=None, lookback=None):
         results = cls.objects.all().order_by('-date')
+
+        if not results.exists():
+            return pd.DataFrame()
+
         if tickers is not None:
             results = results.filter(ticker__in=tickers)
 
         if max_date is not None:
             results = results.filter(date__lte=max_date)
         else:
-            max_date = results.latest('date').date
+            try:
+                max_date = results.latest('date').date
+            except cls.DoesNotExist:
+                pass
         
         if lookback:
             results = results.filter(date__gte=max_date - datetime.timedelta(days=lookback*2)) # this math is impercise because of weekends
