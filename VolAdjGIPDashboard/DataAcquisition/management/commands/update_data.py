@@ -9,7 +9,7 @@ class Command(BaseCommand):
         GDPForecast.update()
         YahooHistory.update()
         YahooHistory.calculate_stats()
-        BitfinexHistory.update()
-        BitfinexHistory.calculate_stats()
+        #BitfinexHistory.update()
+        #BitfinexHistory.calculate_stats()
 
         QuadForecasts.update()
