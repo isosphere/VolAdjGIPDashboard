@@ -5,7 +5,7 @@ import pandas as pd
 
 from sklearn.linear_model import LinearRegression
 
-from DataAcquisition.models import YahooHistory, BitfinexHistory, QuadForecasts, QuadReturn, CommitmentOfTraders, SignalTimeSeries
+from DataAcquisition.models import YahooHistory, BitfinexHistory, QuadForecasts, QuadReturn, SignalTimeSeries
 from django.db.models import F
 from django.conf import settings
 from django.contrib import messages
@@ -207,10 +207,6 @@ def quad_performance_summary(quad_allocation, prior_quad_end_date, current_quad_
 
 
 def index(request, default_net_liquidating_value=10000, lookback=52, default_currency='USD'):
-    # Commitment of Traders
-    latest_cot_date = CommitmentOfTraders.objects.latest('date').date
-    cot_data = CommitmentOfTraders.objects.filter(date=latest_cot_date).order_by('symbol')
-
     # For our little 4-quad chart
     current_date = datetime.date.today()
     quarter_int = (current_date.month - 1) // 3 + 1 
@@ -430,8 +426,6 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         'prior_quad_start': prior_quad_start,
         'prior_quad_end': prior_quad_end,
 
-        'latest_cot_date': latest_cot_date,
-        'cot_data': cot_data,
         'GOOGLE_ID': settings.GOOGLE_ID,
 
         'signal_data': signal_structure,

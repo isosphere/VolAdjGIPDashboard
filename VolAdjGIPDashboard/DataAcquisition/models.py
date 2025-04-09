@@ -895,7 +895,7 @@ class CommitmentOfTraders(models.Model):
         quandl.ApiConfig.api_key = settings.QUANDL_KEY
 
         for key in quandl_codes:
-            mydata = quandl.get("CFTC/%s%s" % (quandl_codes[key], sub_code))
+            mydata = quandl.get(f"CFTC/{quandl_codes[key]}{sub_code}")
             net_long, one_year, three_year, one_year_abs, three_year_abs = cls.process_net_long(mydata)  
             obj, created = cls.objects.update_or_create(
                 date=mydata.index.max(), symbol=key, defaults={
