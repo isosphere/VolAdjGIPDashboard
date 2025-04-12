@@ -17,7 +17,11 @@
                                         </tr>
                                     </thead>
                                     {% for quad, value in prior_quad_return.items %}
+                                    {% if quad == prior_quad %}
+                                    <tr class="table-info">
+                                    {% else %}
                                     <tr>
+                                    {% endif %}
                                     <td>{{quad}}</td>
                                     {% for percent in value %}
                                         {% if forloop.first or forloop.last %}
@@ -62,7 +66,11 @@
                                         </tr>
                                     </thead>
                                     {% for quad, value in current_quad_return.items %}
+                                    {% if quad == current_quad %}
+                                    <tr class="table-info">
+                                    {% else %}
                                     <tr>
+                                    {% endif %}
                                         <td>{{quad}}</td>
                                         {% for percent in value %}
                                         {% if forloop.first or forloop.last %}
