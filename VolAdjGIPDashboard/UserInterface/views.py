@@ -212,7 +212,10 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     quarter_int = (current_date.month - 1) // 3 + 1 
     quarter_date = datetime.date(current_date.year, 1, 1) + pd.offsets.QuarterEnd(n=1)*quarter_int
 
-    quad_guesses = QuadForecasts.objects.filter(quarter_end_date=quarter_date).order_by('-date')[:3].values_list('date', 'gdp_roc', 'cpi_roc')
+    quad_guesses = QuadForecasts.objects.filter(quarter_end_date=quarter_date).order_by('-date')
+    current_quad_guess = quad_guesses.latest('date').quad
+    
+    quad_guesses = quad_guesses[:3].values_list('date', 'gdp_roc', 'cpi_roc', 'quad')
 
     # Position sizing inputs
     net_liquidating_value = request.POST.get('value', default_net_liquidating_value)
@@ -274,6 +277,8 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         prior_quad_end = current_quad_start - datetime.timedelta(days=1)
     except QuadReturn.DoesNotExist:
         prior_quad_start, prior_quad_end = '?', '?'
+
+    prior_quad_guess = QuadForecasts.objects.filter(quarter_end_date=prior_quad_end_date).latest('date').quad
 
     net_liquidating_value = round(net_liquidating_value, 0)
 
@@ -425,6 +430,9 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         'current_quad_start': current_quad_start,
         'prior_quad_start': prior_quad_start,
         'prior_quad_end': prior_quad_end,
+
+        'current_quad': current_quad_guess,
+        'prior_quad': prior_quad_guess,
 
         'GOOGLE_ID': settings.GOOGLE_ID,
 
