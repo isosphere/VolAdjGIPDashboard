@@ -114,7 +114,11 @@
                                         </tr>
                                     </thead>
                                     {% for quad, value in daily_return.items %}
+                                    {% if quad == current_quad %}
+                                    <tr class="table-info">
+                                    {% else %}
                                     <tr>
+                                    {% endif %}
                                         <td>{{quad}}</td>
                                         {% if value < 0 %}
                                         <td class="text-danger">
