@@ -214,8 +214,8 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
 
     quad_guesses = QuadForecasts.objects.filter(quarter_end_date=quarter_date).order_by('-date')
     current_quad_guess = quad_guesses.latest('date').quad
-    
-    quad_guesses = quad_guesses[:3].values_list('date', 'gdp_roc', 'cpi_roc', 'quad')
+
+    quad_guesses = quad_guesses[:3].values_list('date', 'gdp_roc', 'cpi_roc')
 
     # Position sizing inputs
     net_liquidating_value = request.POST.get('value', default_net_liquidating_value)
