@@ -389,6 +389,7 @@ class SecurityHistory(models.Model):
             logger.warn("Can't calculate stats when we have no data.")
             return
         
+        # here is where realized_vol gets calculated
         all_data = all_data.groupby([
             pd.Grouper(level='ticker'),
             pd.Grouper(level='date', freq='W')
