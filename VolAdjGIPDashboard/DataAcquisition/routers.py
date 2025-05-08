@@ -1,6 +1,4 @@
-from DataAcquisition.models import SignalTimeSeries
-
-ROUTED_MODELS = [SignalTimeSeries]
+ROUTED_MODELS = []
 
 class DBRouter(object):
     def db_for_read(self, model, **hints):

@@ -5,7 +5,7 @@ import pandas as pd
 
 from sklearn.linear_model import LinearRegression
 
-from DataAcquisition.models import YahooHistory, QuadForecasts, QuadReturn, SignalTimeSeries
+from DataAcquisition.models import YahooHistory, QuadForecasts, QuadReturn
 from django.db.models import F
 from django.conf import settings
 from django.contrib import messages
