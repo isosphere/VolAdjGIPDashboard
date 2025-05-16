@@ -30,11 +30,12 @@
 <script>
     var ctx_score = document.getElementById('quad_performance').getContext('2d');
     var scatterChart = new Chart(ctx_score, {
-        type: 'scatter',
+        type: 'line',
         data: {
             datasets: [
                 {
                     label: "Current",
+                    fill: false,
                     data: [
                         {% for datum in quad_performance %}
                         {
@@ -43,11 +44,11 @@
                         },
                         {% endfor %}
                     ],
-                    pointBackgroundColor: ['#00ff00'],
-                    backgroundColor: '#00ff00'
+                    borderColor: ['#00ff00'],
                 },
                 {
                     label: "Prior Quarter",
+                    fill: false,
                     data: [
                         {% for datum in prior_quad_performance %}
                         {
@@ -56,8 +57,7 @@
                         },
                         {% endfor %}
                     ],
-                    pointBackgroundColor: ['#0000ff'],
-                    backgroundColor: '#0000ff'
+                    borderColor: ['#0000ff'],
                 },
                 {
                     label: "Regression (this quarter)",
@@ -92,10 +92,45 @@
                     fill: false,
                     borderColor: '#f000f0',
                     borderDash: [5, 10]
+                },
+                {
+                    label: "Regression +95%",
+                    fill: false,
+                    showLine: true,
+                    data: [
+                        {
+                            x: 0,
+                            y: {{error_percentile}},
+                        },
+                        {
+                            x: 90,
+                            y: {{current_regression}} + {{error_percentile}}
+                        }
+                    ],
+                },
+                {
+                    label: "Regression -95%",
+                    fill: '-1',
+                    showLine: true,
+                    data: [
+                        {
+                            x: 0,
+                            y: -{{error_percentile}},
+                        },
+                        {
+                            x: 90,
+                            y: {{current_regression}} - {{error_percentile}}
+                        }
+                    ]
                 }
             ]
         },
         options: {
+            plugins: {
+                filler: {
+                    propagate: false,
+                }
+            },
             scales: {
                 xAxes: [{
                     type: 'linear',

@@ -48,13 +48,20 @@ def quad_performance(request, label):
         X=np.array(list( map(lambda x: x[0], quad_performance) )).reshape(-1, 1),
         y=np.array(list( map(lambda x: x[1], quad_performance) )).reshape(-1, 1)
     )
+    
+    # the final value only
     current_regression = reg.coef_.item()*90.0
     
     reg = LinearRegression(fit_intercept=False).fit(
         X=np.array(list( map(lambda x: x[0], prior_quad_performance) )).reshape(-1, 1),
         y=np.array(list( map(lambda x: x[1], prior_quad_performance) )).reshape(-1, 1)
     )
+    
+    # the final value only
     prior_regression = reg.coef_.item()*90.0
+
+    prior_residuals = [ abs(x[1] - reg.coef_.item()*x[0]) for x in prior_quad_performance ]
+    error_percentile = np.percentile(prior_residuals, 95)
 
     latest_performance = quad_returns.latest('data_end_date').data_end_date
 
@@ -68,7 +75,8 @@ def quad_performance(request, label):
         'quad_performance': quad_performance,
         'prior_quad_performance': prior_quad_performance,
         'current_regression': current_regression,
-        'prior_regression': prior_regression
+        'prior_regression': prior_regression,
+        'error_percentile': error_percentile,
     })
 
 def all_symbol_summary(quad_allocation, latest_date):
@@ -346,12 +354,15 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     # Regression of performance
     current_regressions = dict()
     prior_regressions = dict()
+    prior_error_percentiles = dict()
 
     for quad in quad_allocation:
         reg = LinearRegression(fit_intercept=False).fit(
             X=np.array(list( map(lambda x: x[0], quad_performance[quad]) )).reshape(-1, 1),
             y=np.array(list( map(lambda x: x[1], quad_performance[quad]) )).reshape(-1, 1)
         )
+
+        # final values
         current_regressions[quad] = reg.coef_.item()*90.0
         
         reg = LinearRegression(fit_intercept=False).fit(
@@ -359,6 +370,8 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
             y=np.array(list( map(lambda x: x[1], prior_quad_performance[quad]) )).reshape(-1, 1)
         )
         prior_regressions[quad] = reg.coef_.item()*90.0
+
+        prior_error_percentiles[quad] = np.percentile([ abs(x[1] - reg.coef_.item()*x[0]) for x in prior_quad_performance[quad] ], 95)
 
     performance_change = dict()
     year, prior_weeknum, _ = (latest_date - datetime.timedelta(days=7)).isocalendar()
@@ -415,6 +428,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
 
         'quad_performance': quad_performance,
         'prior_quad_performance': prior_quad_performance,
+        'prior_error_percentiles': prior_error_percentiles,
         'current_regressions': current_regressions,
         'prior_regressions': prior_regressions,
         'performance_change': performance_change,
