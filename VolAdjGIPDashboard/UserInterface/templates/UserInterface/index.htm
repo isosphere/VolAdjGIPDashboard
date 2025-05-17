@@ -323,7 +323,7 @@
                                         <th>Ratio</th>
                                         <th>Price</th>
                                         <th data-toggle="tooltip" data-placement="top" title="(over {{lookback}} trading weeks)">Realized 1-Week Volatility</th>
-                                        <th>Linear R2</th>
+                                        <th>Prior Q Linear R2</th>
                                         <th>Linear EOQ Ratio Forecast</th>
                                     </tr>
                                 </thead>
@@ -342,7 +342,7 @@
                                         {% else %}
                                         <td>{{value.3|floatformat:1}}%</td>
                                         {% endif %}
-                                        <td>{{value.4|floatformat:2}}</td>
+                                        <td>{{value.4|floatformat:0}} %</td>
                                         <td>{{value.5|floatformat:2}}</td>
                                     </tr>
                                     {% endfor %}

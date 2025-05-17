@@ -38,18 +38,27 @@ class QuadReturn(models.Model):
     linear_eoq_95pct = models.FloatField(null=True)
 
     @classmethod
+    def clear_models(cls):
+        cls.objects.update(linear_eoq_forecast=None, linear_eoq_r2=None, linear_eoq_95pct=None)
+    
+    @classmethod
     def update_models(cls):
         updated_items = list()
 
         for item in cls.objects.filter(linear_eoq_95pct__isnull=True):
-            prior_quad_end_date = (item.quarter_end_date - pd.tseries.offsets.QuarterEnd(n=1)).date()
-            current_quad_start = prior_quad_end_date + datetime.timedelta(days=1)
-
-            quad_returns = cls.objects.filter(quarter_end_date=item.quarter_end_date, label=item.label, quad_stdev__gt=0)\
+            quad_returns = cls.objects.filter(quarter_end_date=item.quarter_end_date, label=item.label, quad_stdev__gt=0, data_end_date__lte=item.data_end_date)\
                 .order_by('data_end_date')\
                 .annotate(score=F('quad_return')/F('quad_stdev'))
+            
+            prior_quad_end_date = (item.quarter_end_date - pd.tseries.offsets.QuarterEnd(n=1)).date()
+            current_quad_start = prior_quad_end_date + datetime.timedelta(days=1)            
 
             day_index = [(qtrn.data_end_date-current_quad_start).days for qtrn in quad_returns]
+            
+            # you need two points to make a line
+            if len(day_index) < 2:
+                continue
+            
             X = np.array(day_index).reshape(-1, 1)
             y = np.array([qrtn.score for qrtn in quad_returns]).reshape(-1, 1)
 
@@ -59,8 +68,7 @@ class QuadReturn(models.Model):
             # the final value only
             item.linear_eoq_forecast = reg.coef_.item()*90.0
             
-            if len(day_index) >= 2:
-                item.linear_eoq_r2 = reg.score(X, y)
+            item.linear_eoq_r2 = reg.score(X, y)
 
             residuals = [ abs(x.score - reg.coef_.item()*day_index[i]) for i, x in enumerate(quad_returns) ]
             item.linear_eoq_95pct = np.percentile(residuals, 95)   

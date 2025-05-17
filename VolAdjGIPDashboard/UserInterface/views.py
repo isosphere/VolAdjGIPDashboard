@@ -136,18 +136,27 @@ def all_symbol_summary(quad_allocation, latest_date):
                 current_performance = QuadReturn.objects.filter(label=f"{group.__name__}_{symbol}").latest('quarter_end_date', 'data_end_date')
                 if current_performance and current_performance.quad_stdev:
                     current_score = current_performance.quad_return / current_performance.quad_stdev
+                    prior_performance = QuadReturn.objects.filter(label=current_performance.label).exclude(quarter_end_date=current_performance.quarter_end_date).latest('data_end_date')
                 else:
                     current_performance = None
+                    prior_performance = None
             except QuadReturn.DoesNotExist:
+                current_performance = None
                 current_score = None
+                prior_performance = None
+
+            if prior_performance.linear_eoq_r2:
+                r_squared = prior_performance.linear_eoq_r2 * 100
+            else:
+                r_squared = None
 
             if last_week_vol is not None:
                 symbol_values[symbol] = [
                     group.__name__ + '_' + symbol,                    
-                    symbol_data.close_price, 2, 
+                    symbol_data.close_price, 
                     '--.--' if not current_score else current_score,
                     100*last_week_vol,    
-                    current_performance.linear_eoq_r2,
+                    r_squared,
                     current_performance.linear_eoq_forecast,
                 ]
             else:
@@ -156,7 +165,7 @@ def all_symbol_summary(quad_allocation, latest_date):
                     symbol_data.close_price, 
                     '--.--' if not current_score else current_score,
                     '--.--', 
-                    current_performance.linear_eoq_r2,
+                    r_squared,
                     current_performance.linear_eoq_forecast,                    
                 ]
 
