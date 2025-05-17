@@ -1,5 +1,5 @@
-from django.core.management.base import BaseCommand, CommandError
-from DataAcquisition.models import YahooHistory, QuadForecasts, CPIForecast, GDPForecast
+from django.core.management.base import BaseCommand
+from DataAcquisition.models import YahooHistory, QuadForecasts, QuadReturn, CPIForecast, GDPForecast
 
 class Command(BaseCommand):
     help = 'Update security history and forecasts'
@@ -9,5 +9,6 @@ class Command(BaseCommand):
         GDPForecast.update()
         YahooHistory.update()
         YahooHistory.calculate_stats()
+        QuadReturn.update()
 
         QuadForecasts.update()

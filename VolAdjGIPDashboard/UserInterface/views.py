@@ -12,6 +12,7 @@ from django.contrib import messages
 from django.shortcuts import render
 from django.http import Http404
 
+#  todo: this should be reusable in the index
 def quad_performance(request, label):
     label = label.replace(' ', '')
     latest_date = YahooHistory.objects.latest('date').date
@@ -23,8 +24,13 @@ def quad_performance(request, label):
     prior_quad_start = (prior_quad_end_date - pd.tseries.offsets.QuarterEnd(n=1) + datetime.timedelta(days=1)).date()
 
     # time series data for quad return charts
-    quad_returns = QuadReturn.objects.filter(quarter_end_date=quarter_end_date, label=label).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev'))
-    prior_quad_returns = QuadReturn.objects.filter(quarter_end_date=prior_quad_end_date, label=label).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev'))
+    quad_returns = QuadReturn.objects.filter(quarter_end_date=quarter_end_date, label=label)\
+        .order_by('label', 'data_end_date')\
+        .annotate(score=F('quad_return')/F('quad_stdev'))
+    
+    prior_quad_returns = QuadReturn.objects.filter(quarter_end_date=prior_quad_end_date, label=label)\
+        .order_by('label', 'data_end_date')\
+        .annotate(score=F('quad_return')/F('quad_stdev'))
 
     if not quad_returns:
         raise Http404(f"Label {label} does not exist.")
@@ -43,25 +49,9 @@ def quad_performance(request, label):
         else:
             continue
 
-    # Regression of performance
-    reg = LinearRegression(fit_intercept=False).fit(
-        X=np.array(list( map(lambda x: x[0], quad_performance) )).reshape(-1, 1),
-        y=np.array(list( map(lambda x: x[1], quad_performance) )).reshape(-1, 1)
-    )
-    
-    # the final value only
-    current_regression = reg.coef_.item()*90.0
-    
-    reg = LinearRegression(fit_intercept=False).fit(
-        X=np.array(list( map(lambda x: x[0], prior_quad_performance) )).reshape(-1, 1),
-        y=np.array(list( map(lambda x: x[1], prior_quad_performance) )).reshape(-1, 1)
-    )
-    
-    # the final value only
-    prior_regression = reg.coef_.item()*90.0
-
-    prior_residuals = [ abs(x[1] - reg.coef_.item()*x[0]) for x in prior_quad_performance ]
-    error_percentile = np.percentile(prior_residuals, 95)
+    current_regression = quad_returns.latest('data_end_date').linear_eoq_forecast
+    prior_regression = prior_quad_returns.latest('data_end_date').linear_eoq_forecast
+    error_percentile = prior_quad_returns.latest('data_end_date').linear_eoq_95pct
 
     latest_performance = quad_returns.latest('data_end_date').data_end_date
 
@@ -82,9 +72,8 @@ def quad_performance(request, label):
 def all_symbol_summary(quad_allocation, latest_date):
     """ returns something like:
 
-    [ [ label, close_price, ratio, last_week_vol ], ... ]
+    [ [ label, close_price, ratio, last_week_vol, linear_r2, linear_eoq_forecast ], ... ]
     
-
     Args:
         quad_allocation (_type_): _description_
         latest_date (_type_): _description_
@@ -117,6 +106,8 @@ def all_symbol_summary(quad_allocation, latest_date):
                     '--.--',
                     '--.--',
                     '--.--',
+                    '--',
+                    '--.--'
                 ]
                 continue
 
@@ -131,6 +122,8 @@ def all_symbol_summary(quad_allocation, latest_date):
                     '--.--',
                     '--.--',
                     '--.--',
+                    '--',
+                    '--.--'
                 ]
                 continue
             
@@ -142,25 +135,29 @@ def all_symbol_summary(quad_allocation, latest_date):
             try:
                 current_performance = QuadReturn.objects.filter(label=f"{group.__name__}_{symbol}").latest('quarter_end_date', 'data_end_date')
                 if current_performance and current_performance.quad_stdev:
-                    current_performance = current_performance.quad_return / current_performance.quad_stdev
+                    current_score = current_performance.quad_return / current_performance.quad_stdev
                 else:
                     current_performance = None
             except QuadReturn.DoesNotExist:
-                current_performance = None
+                current_score = None
 
             if last_week_vol is not None:
                 symbol_values[symbol] = [
                     group.__name__ + '_' + symbol,                    
-                    round(symbol_data.close_price, 2), 
-                    '--.--' if not current_performance else round(current_performance, 2),
-                    round(100*last_week_vol, 2),                     
+                    symbol_data.close_price, 2, 
+                    '--.--' if not current_score else current_score,
+                    100*last_week_vol,    
+                    current_performance.linear_eoq_r2,
+                    current_performance.linear_eoq_forecast,
                 ]
             else:
                 symbol_values[symbol] = [
                     group.__name__ + '_' + symbol,
-                    round(symbol_data.close_price, 2), 
-                    '--.--' if not current_performance else round(current_performance, 2),
+                    symbol_data.close_price, 
+                    '--.--' if not current_score else current_score,
                     '--.--', 
+                    current_performance.linear_eoq_r2,
+                    current_performance.linear_eoq_forecast,                    
                 ]
 
     return symbol_values

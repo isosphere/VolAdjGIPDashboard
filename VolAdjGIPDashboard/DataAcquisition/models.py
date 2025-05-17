@@ -1,27 +1,25 @@
-import asyncio
 import datetime
 import logging
 import io
 import itertools
 import math
 import requests
-import time
-
-from dateutil.parser import parse
-import pytz
 
 from django.db import models
-from django.db.models import Max
+from django.db.models import F, Max
 from django.db.utils import IntegrityError
 from django.conf import settings
 
 #from bfxapi import Client
+from sklearn.linear_model import LinearRegression
 import pandas_datareader.data as web
 import yfinance
 import quandl
 
 import pandas as pd
 import numpy as np
+
+QUAD_RETURN_BATCH_SIZE = 5000
 
 class QuadReturn(models.Model):
     quarter_end_date = models.DateField()
@@ -33,6 +31,47 @@ class QuadReturn(models.Model):
 
     quad_return = models.FloatField()
     quad_stdev = models.FloatField()
+
+    # linear model output
+    linear_eoq_forecast = models.FloatField(null=True)
+    linear_eoq_r2 = models.FloatField(null=True)
+    linear_eoq_95pct = models.FloatField(null=True)
+
+    @classmethod
+    def update_models(cls):
+        updated_items = list()
+
+        for item in cls.objects.filter(linear_eoq_95pct__isnull=True):
+            prior_quad_end_date = (item.quarter_end_date - pd.tseries.offsets.QuarterEnd(n=1)).date()
+            current_quad_start = prior_quad_end_date + datetime.timedelta(days=1)
+
+            quad_returns = cls.objects.filter(quarter_end_date=item.quarter_end_date, label=item.label, quad_stdev__gt=0)\
+                .order_by('data_end_date')\
+                .annotate(score=F('quad_return')/F('quad_stdev'))
+
+            day_index = [(qtrn.data_end_date-current_quad_start).days for qtrn in quad_returns]
+            X = np.array(day_index).reshape(-1, 1)
+            y = np.array([qrtn.score for qrtn in quad_returns]).reshape(-1, 1)
+
+            # Regression of performance
+            reg = LinearRegression(fit_intercept=False).fit(X=X, y=y)
+            
+            # the final value only
+            item.linear_eoq_forecast = reg.coef_.item()*90.0
+            
+            if len(day_index) >= 2:
+                item.linear_eoq_r2 = reg.score(X, y)
+
+            residuals = [ abs(x.score - reg.coef_.item()*day_index[i]) for i, x in enumerate(quad_returns) ]
+            item.linear_eoq_95pct = np.percentile(residuals, 95)   
+
+            updated_items.append(item)
+
+        cls.objects.bulk_update(updated_items, ['linear_eoq_forecast', 'linear_eoq_r2', 'linear_eoq_95pct'], batch_size = QUAD_RETURN_BATCH_SIZE)
+
+    @classmethod
+    def update(cls):
+        cls.update_models()
 
     class Meta:
         unique_together = [['quarter_end_date', 'data_start_date', 'data_end_date', 'label']]
@@ -164,7 +203,7 @@ class SecurityHistory(models.Model):
             logger.debug("Calculating quad returns since %s for tickers %s", try_date, labels)
 
             while try_date <= latest_date:
-                logger.debug(f"Tickers=%s, date=%s ... ", labels, try_date)
+                logger.debug("Tickers=%s, date=%s ... ", labels, try_date)
                 try:
                     cls.quad_return(
                         tickers=labels,
@@ -800,8 +839,6 @@ class QuadForecasts(models.Model):
 
         latest_date = max(latest_cpi_date, latest_gdp_date)
 
-        max_date = usa_quads.index.get_level_values('date').max()
-
         usa_quads = usa_quads[
             (usa_quads.index.get_level_values('date') <= usa_quads.index.get_level_values('quarter_end_date'))
             #&(usa_quads.index.get_level_values('date') > usa_quads.index.get_level_values('quarter_end_date') - pd.offsets.QuarterEnd(n=1))
@@ -811,7 +848,7 @@ class QuadForecasts(models.Model):
             quarter, date = row.Index
 
             try:
-                quad = int(row.quad)
+                _quad = int(row.quad)
             except ValueError:
                 continue
 
