@@ -928,6 +928,8 @@ class QuadForecasts(models.Model):
                     'quad': int(row.quad)
                 }
             )
+        
+        cls.update_models()
 
     class Meta:
         unique_together = [['quarter_end_date', 'date']]
