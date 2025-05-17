@@ -229,6 +229,9 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     quad_guesses = QuadForecasts.objects.filter(quarter_end_date=quarter_date).order_by('-date')
     current_quad_guess = quad_guesses.latest('date').quad
 
+    latest_gdp_sigma, latest_cpi_sigma = quad_guesses[0].gdp_sigma, quad_guesses[0].cpi_sigma
+    latest_gdp_origin, latest_cpi_origin = quad_guesses[0].gdp_origin, quad_guesses[0].cpi_origin
+
     quad_guesses = quad_guesses[:3].values_list('date', 'gdp_roc', 'cpi_roc')
 
     # Position sizing inputs
@@ -255,7 +258,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         2: ['XLF', 'XLI', 'QQQ'],
         3: ['GLD','VPU'],
         4: ['VPU', 'TLT', 'UUP'],
-        'Market': ['VTI',]
+#        'Market': ['VTI',]
     }
 
     weekly_return = dict()
@@ -445,7 +448,12 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         'data_updated': data_updated,
         'symbol_values': symbol_values,
         'lookback': lookback,
+
         'roc_data': quad_guesses,
+        'latest_gdp_origin': latest_gdp_origin,
+        'latest_gdp_sigma': latest_gdp_sigma,
+        'latest_cpi_origin': latest_cpi_origin,
+        'latest_cpi_sigma': latest_cpi_sigma,
 
         'current_quad_start': current_quad_start,
         'prior_quad_start': prior_quad_start,

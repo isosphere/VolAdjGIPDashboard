@@ -395,8 +395,8 @@
                 $('[data-toggle="tooltip"]').tooltip()
             })
         </script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-colorschemes"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@3.0.0/dist/chart.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.0.2/dist/chartjs-plugin-annotation.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
         <script>
             var ctx_quad = document.getElementById('quad_updates').getContext('2d');
@@ -432,79 +432,72 @@
                     ]
                 },
                 options: {
+                    plugins: {
+                        autocolors: false,
+                        annotation: {
+                            annotations: [
+                                {
+                                    type: 'line',
+                                    yMin: -1000,
+                                    yMax: 1000,
+                                    xMin: 0,
+                                    xMax: 0,
+                                    borderColor: 'rgb(0, 0, 0)',
+                                    borderWidth: 1,
+                                },  
+                                {
+                                    type: 'line',
+                                    xMin: -1000,
+                                    xMax: 1000,
+                                    yMin: 0,
+                                    yMax: 0,
+                                    borderColor: 'rgb(0, 0, 0)',
+                                    borderWidth: 1,
+                                },                                                                
+                                {
+                                    type: 'ellipse',
+                                    xMin: {{latest_cpi_origin}} - {{latest_cpi_sigma}},
+                                    xMax: {{latest_cpi_origin}} + {{latest_cpi_sigma}},
+                                    yMin: {{latest_gdp_origin}} - {{latest_gdp_sigma}},
+                                    yMax: {{latest_gdp_origin}} + {{latest_gdp_sigma}},
+                                    backgroundColor: 'rgba(0, 100, 100, 0.2)',
+                                    borderColor: 'rgba(0, 100, 100, 0.2)',
+                                },
+                            ],
+                        },
+                    },
                     scales: {
-                        xAxes: [{
+                        x: {
                             type: 'linear',
                             position: 'bottom',
-                            scaleLabel: {
-                                labelString: "Inflation Velocity (bps)",
+                            title: {
+                                text: "Inflation Velocity (bps)",
                                 display: true
                             },
+                            suggestedMax: 50.0,
+                            suggestedMin: -50.0,                                
                             ticks: {
-                                suggestedMax: 50.0,
-                                suggestedMin: -50.0,
                                 stepSize: 20.0,
                             }
-                        }],
-                        yAxes: [{
+                        },
+                        y: {
                             type: 'linear',
-                            scaleLabel: {
-                                labelString: "Growth Velocity (bps)",
+                            title: {
+                                text: "Growth Velocity (bps)",
                                 display: true
                             },
+                            suggestedMin: -50.0,
+                            suggestedMax: 50.0,
                             ticks: {
-                                suggestedMax: 50.0,
-                                suggestedMin: -50.0,
                                 stepSize: 20.0,
                             }
-                        }]
+                        }
                     },
                     legend: {
                         display: true,
                         position: 'right'
                     }
                 }
-            });
-        </script>
-        <script>
-            var ctx_bullish = document.getElementById('posterior_bullishness').getContext('2d');
-            var lineChart = new Chart(ctx_bullish, {
-                type: 'line',
-                data: {
-                    datasets: [
-                    {% for ticker, values in signal_data.items %}
-                        {
-                            label: "{{ticker}}",
-                            lineTension: 0,
-                            fill: false,
-                            data: [
-                                {% for row in values %}
-                                {
-                                    x: "{{row.timestamp.isoformat}}",
-                                    y: 100*{{row.signal}}
-                                },
-                                {% endfor %}
-                        ]
-                    },
-                    {% endfor %}
-                ]
-                },
-                options: {
-                    scales: {
-                        yAxes: [{
-                            min: -100,
-                            max: 100,
-                        }],
-                        xAxes: [{
-                            type: 'time'
-                        }]
-                    }
-                },
-                plugins: {
-                    colorschemes: {
-                        scheme: 'brewer.Paired12',
-                    },
-                },
             });
         </script>
         <script>
@@ -545,31 +538,31 @@
                 },
                 options: {
                     scales: {
-                        xAxes: [{
+                        x: {
                             type: 'linear',
                             position: 'bottom',
-                            scaleLabel: {
-                                labelString: "Quarter Depth",
+                            title: {
+                                text: "Quarter Depth",
                                 display: true
                             },
+                            suggestedMax: 90.0,
+                            suggestedMin: 0.0,
                             ticks: {
-                                suggestedMax: 90.0,
-                                suggestedMin: 0.0,
                                 stepSize: 1.0,
                             }
-                        }],
-                        yAxes: [{
+                        },
+                        y: {
                             type: 'linear',
-                            scaleLabel: {
-                                labelString: "Performance",
+                            title: {
+                                text: "Performance",
                                 display: true
                             },
+                            suggestedMax: 25.0,
+                            suggestedMin: -25.0,
                             ticks: {
-                                suggestedMax: 25.0,
-                                suggestedMin: -25.0,
                                 stepSize: 10.0,
                             }
-                        }]
+                        }
                     },
                     legend: {
                         display: true,
@@ -734,31 +727,31 @@
                 },
                 options: {
                     scales: {
-                        xAxes: [{
+                        x: {
                             type: 'linear',
                             position: 'bottom',
-                            scaleLabel: {
-                                labelString: "Quarter Depth",
+                            title: {
+                                text: "Quarter Depth",
                                 display: true
                             },
+                            suggestedMax: 90.0,
+                            suggestedMin: 0.0,                            
                             ticks: {
-                                suggestedMax: 90.0,
-                                suggestedMin: 0.0,
                                 stepSize: 5.0,
                             }
-                        }],
-                        yAxes: [{
+                        },
+                        y: {
                             type: 'linear',
-                            scaleLabel: {
-                                labelString: "Ratio",
+                            title: {
+                                text: "Ratio",
                                 display: true
                             },
+                            suggestedMax: 25.0,
+                            suggestedMin: -25.0,
                             ticks: {
-                                suggestedMax: 25.0,
-                                suggestedMin: -25.0,
                                 stepSize: 5.0,
                             }
-                        }]
+                        }
                     },
                     legend: {
                         display: true,

@@ -1,7 +1,6 @@
 *.pyc
 *.h5
 .env
-*.json
 .vscode/
 *.csv
 \.ipynb_checkpoints/
@@ -11,3 +10,4 @@ config.json
 *.sqlite3
 settings.py
 static/
+node_modules/

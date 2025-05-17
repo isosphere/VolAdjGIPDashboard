@@ -6,11 +6,12 @@ import math
 import requests
 
 from django.db import models
-from django.db.models import F, Max
+from django.db.models import F, Max, Q
 from django.db.utils import IntegrityError
 from django.conf import settings
 
 #from bfxapi import Client
+from scipy import optimize as opt
 from sklearn.linear_model import LinearRegression
 import pandas_datareader.data as web
 import yfinance
@@ -682,6 +683,8 @@ class CPIForecast(models.Model):
 
         return dataset
 
+QUAD_FORECAST_BATCH_SIZE = 5000
+
 class QuadForecasts(models.Model):
     quarter_end_date = models.DateField()
     date = models.DateField()
@@ -691,6 +694,56 @@ class QuadForecasts(models.Model):
     quad = models.IntegerField()
 
     updated = models.DateTimeField(auto_now=True)
+
+    # model outputs
+    cpi_origin = models.FloatField(null=True) # i.e: mean
+    cpi_sigma = models.FloatField(null=True) # all time stdev
+    
+    gdp_origin = models.FloatField(null=True) # i.e.: mean
+    gdp_sigma = models.FloatField(null=True) # all time stdev
+    
+    @classmethod
+    def clear_models(cls):
+        cls.objects.update(cpi_origin=None, gdp_origin=None, cpi_sigma=None, gdp_sigma=None)
+    
+    @classmethod
+    def update_models(cls):
+        # establish prior
+        all_items = cls.objects.values_list('cpi_roc', 'gdp_roc')
+
+        empty_objects = cls.objects.filter(
+            Q(cpi_origin__isnull=True) | Q(gdp_origin__isnull=True) |
+            Q(cpi_sigma__isnull=True) | Q(gdp_sigma__isnull=True)
+        )
+
+        std_cache = dict()
+        
+        updated_items = list()
+        for item in empty_objects:
+            data_series = cls.objects.filter(quarter_end_date=item.quarter_end_date, date__lte=item.date).values_list('gdp_roc', 'cpi_roc')
+            gdp_mean, cpi_mean = np.mean(data_series, axis=0)
+
+            if item.date in std_cache:
+                gdp_sigma, cpi_sigma = std_cache[item.date]
+            else:
+                sub_items = all_items.filter(date__lte=item.date)
+                gdp_sigma, cpi_sigma = np.std(sub_items, axis=0)
+                std_cache[item.date] = (gdp_sigma, cpi_sigma)
+
+            # update parameters
+            item.cpi_origin = cpi_mean
+            item.gdp_origin = gdp_mean
+            item.cpi_sigma = cpi_sigma
+            item.gdp_sigma = gdp_sigma
+
+            updated_items.append(item)
+
+            if len(updated_items) >= QUAD_FORECAST_BATCH_SIZE:
+                cls.objects.bulk_update(updated_items, ['cpi_origin', 'gdp_origin', 'cpi_sigma', 'gdp_sigma'])
+                updated_items = list()
+        
+        if updated_items:
+            cls.objects.bulk_update(updated_items, ['cpi_origin', 'gdp_origin', 'cpi_sigma', 'gdp_sigma'])
 
     @classmethod
     def __determine_quad_multi_index(cls, row):
