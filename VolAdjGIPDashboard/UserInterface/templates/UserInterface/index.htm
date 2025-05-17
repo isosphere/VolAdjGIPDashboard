@@ -321,32 +321,24 @@
                                     <tr>
                                         <th>Symbol</th>
                                         <th>Ratio</th>
-                                        <!--th>Signal %</th-->
-                                        <th data-toggle="tooltip" data-placement="top" title="0 = at buy level, 100 = at sell level, 50 = price unchanged from last week">Heat %</th>
-                                        <th>1-σ Week Buy</th>
                                         <th>Price</th>
-                                        <th>1-σ Week Sell</th>
                                         <th data-toggle="tooltip" data-placement="top" title="(over {{lookback}} trading weeks)">Realized 1-Week Volatility</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for symbol, value in symbol_values.items %}
                                     <tr>
-                                        <td><a href="/performance/{{value.6}}">{{symbol}}</a></td>
-                                        <td>{{value.5}}</td>
-                                        <!--td>{{value.7}}</td-->
-                                        <td>{{value.4}}</td>
-                                        <td>${{value.2}}</td>
-                                        <td class="alert-primary">${{value.0}}</td>
-                                        <td>${{value.3}}</td>
-                                        {% if value.1 < 2.9 %}
-                                        <td class="alert-success">{{value.1}}%</td>
-                                        {% elif value.1 <= 4.0 %}
-                                        <td class="alert-warning">{{value.1}}%</td>
-                                        {% elif value.1 > 4.0 %}
-                                        <td class="alert-danger">{{value.1}}%</td>
+                                        <td><a href="/performance/{{value.0}}">{{symbol}}</a></td>
+                                        <td>{{value.2}}</td>
+                                        <td class="alert-primary">${{value.1}}</td>
+                                        {% if value.3 < 2.9 %}
+                                        <td class="alert-success">{{value.3}}%</td>
+                                        {% elif value.3 <= 4.0 %}
+                                        <td class="alert-warning">{{value.3}}%</td>
+                                        {% elif value.3 > 4.0 %}
+                                        <td class="alert-danger">{{value.3}}%</td>
                                         {% else %}
-                                        <td>{{value.1}}%</td>
+                                        <td>{{value.3}}%</td>
                                         {% endif %}
                                     </tr>
                                     {% endfor %}

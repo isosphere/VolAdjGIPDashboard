@@ -80,6 +80,18 @@ def quad_performance(request, label):
     })
 
 def all_symbol_summary(quad_allocation, latest_date):
+    """ returns something like:
+
+    [ [ label, close_price, ratio, last_week_vol ], ... ]
+    
+
+    Args:
+        quad_allocation (_type_): _description_
+        latest_date (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     symbol_values = dict()
 
     for group in (YahooHistory,):
@@ -101,13 +113,10 @@ def all_symbol_summary(quad_allocation, latest_date):
                 symbol_data = group.objects.get(ticker=symbol, date=latest_date)
             except group.DoesNotExist:
                 symbol_values[symbol] = [
-                    'N/A',
+                    group.__name__ + '_' + symbol,
                     '--.--',
                     '--.--',
                     '--.--',
-                    '--.--',
-                    '--.--',
-                    group.__name__ + '_' + symbol
                 ]
                 continue
 
@@ -118,13 +127,10 @@ def all_symbol_summary(quad_allocation, latest_date):
                 last_week = group.objects.filter(ticker=symbol, date__week=prior_week).latest('date')
             except group.DoesNotExist:
                 symbol_values[symbol] = [
-                    'N/A',
+                    group.__name__ + '_' + symbol,
                     '--.--',
                     '--.--',
                     '--.--',
-                    '--.--',
-                    '--.--',
-                    group.__name__ + '_' + symbol
                 ]
                 continue
             
@@ -144,23 +150,17 @@ def all_symbol_summary(quad_allocation, latest_date):
 
             if last_week_vol is not None:
                 symbol_values[symbol] = [
+                    group.__name__ + '_' + symbol,                    
                     round(symbol_data.close_price, 2), 
-                    round(100*last_week_vol, 2), 
-                    round(last_week_val * ( 1 - last_week_vol), 2),
-                    round(last_week_val * ( 1 + last_week_vol), 2),
-                    int(round(100*(symbol_data.close_price - last_week_val*(1 - last_week_vol)) / ( last_week_val * ( 1 + last_week_vol) - last_week_val * ( 1 - last_week_vol)), 0)),
                     '--.--' if not current_performance else round(current_performance, 2),
-                    group.__name__ + '_' + symbol
+                    round(100*last_week_vol, 2),                     
                 ]
             else:
                 symbol_values[symbol] = [
+                    group.__name__ + '_' + symbol,
                     round(symbol_data.close_price, 2), 
-                    '--.--', 
-                    '--.--',
-                    '--.--',
-                    '--.--',
                     '--.--' if not current_performance else round(current_performance, 2),
-                    group.__name__ + '_' + symbol
+                    '--.--', 
                 ]
 
     return symbol_values
