@@ -40,7 +40,7 @@ class QuadReturn(models.Model):
 
 class SecurityHistory(models.Model):
     date = models.DateField()
-    ticker = models.CharField(max_length=12)
+    ticker = models.CharField(max_length=36)
     close_price = models.FloatField()
     updated = models.DateTimeField(auto_now=True)
     realized_volatility = models.FloatField(null=True) 
