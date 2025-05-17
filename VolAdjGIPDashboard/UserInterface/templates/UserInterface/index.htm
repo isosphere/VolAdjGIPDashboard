@@ -342,7 +342,16 @@
                                         {% else %}
                                         <td>{{value.3|floatformat:1}}%</td>
                                         {% endif %}
-                                        <td>{{value.4|floatformat:0}} %</td>
+                                        {% if value.6 == "none" %}
+                                        <td class="alert-danger">
+                                        {% elif value.6 == "weak" %}
+                                        <td class="alert-warning">
+                                        {% elif value.6 == "moderate" %}
+                                        <td class="alert-primary">
+                                        {% else %}
+                                        <td class="alert-success">
+                                        {% endif %}
+                                        {{value.4|floatformat:0}} %</td>
                                         <td>{{value.5|floatformat:2}}</td>
                                     </tr>
                                     {% endfor %}

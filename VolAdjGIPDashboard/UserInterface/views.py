@@ -69,10 +69,28 @@ def quad_performance(request, label):
         'error_percentile': error_percentile,
     })
 
+def classify_r2(r2: float | None) -> str:
+    # expects 100 rather than 1.0, i.e.: base unit is pct
+
+    if not r2:
+        return "none"
+
+    r2 = abs(r2)
+
+    if r2 < 30:
+        return "none"
+    elif r2 < 50:
+        return "weak"
+    elif r2 < 70:
+        return "moderate"
+    else:
+        return "strong"
+
 def all_symbol_summary(quad_allocation, latest_date):
     """ returns something like:
 
-    [ [ label, close_price, ratio, last_week_vol, linear_r2, linear_eoq_forecast ], ... ]
+    [ [ label, close_price, ratio, last_week_vol, linear_r2, linear_eoq_forecast, linear_r2_quality ], ... ]
+    linear_r2_quality is in ('none', 'weak', 'moderate', 'strong') 
     
     Args:
         quad_allocation (_type_): _description_
@@ -107,7 +125,8 @@ def all_symbol_summary(quad_allocation, latest_date):
                     '--.--',
                     '--.--',
                     '--',
-                    '--.--'
+                    '--.--',
+                    'none'
                 ]
                 continue
 
@@ -123,7 +142,8 @@ def all_symbol_summary(quad_allocation, latest_date):
                     '--.--',
                     '--.--',
                     '--',
-                    '--.--'
+                    '--.--',
+                    'none'
                 ]
                 continue
             
@@ -158,6 +178,7 @@ def all_symbol_summary(quad_allocation, latest_date):
                     100*last_week_vol,    
                     r_squared,
                     current_performance.linear_eoq_forecast if current_performance else '--.--',
+                    classify_r2(r_squared)
                 ]
             else:
                 symbol_values[symbol] = [
@@ -167,6 +188,7 @@ def all_symbol_summary(quad_allocation, latest_date):
                     '--.--', 
                     r_squared,
                     current_performance.linear_eoq_forecast if current_performance else '--.--',
+                    classify_r2(r_squared)
                 ]
 
     return symbol_values
