@@ -28,7 +28,7 @@ def quad_performance(request, label):
         .order_by('label', 'data_end_date')\
         .annotate(score=F('quad_return')/F('quad_stdev'))
     
-    prior_quad_returns = QuadReturn.objects.filter(quarter_end_date=prior_quad_end_date, label=label)\
+    prior_quad_returns = QuadReturn.objects.filter(quarter_end_date=prior_quad_end_date, label=label).exclude(quad_stdev=0)\
         .order_by('label', 'data_end_date')\
         .annotate(score=F('quad_return')/F('quad_stdev'))
 
