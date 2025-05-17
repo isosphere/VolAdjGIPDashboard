@@ -145,7 +145,7 @@ def all_symbol_summary(quad_allocation, latest_date):
                 current_score = None
                 prior_performance = None
 
-            if prior_performance.linear_eoq_r2:
+            if prior_performance and prior_performance.linear_eoq_r2:
                 r_squared = prior_performance.linear_eoq_r2 * 100
             else:
                 r_squared = None
