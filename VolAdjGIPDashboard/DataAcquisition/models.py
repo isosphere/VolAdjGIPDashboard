@@ -66,8 +66,7 @@ class QuadReturn(models.Model):
             reg = LinearRegression(fit_intercept=False).fit(X=X, y=y)
             
             # the final value only
-            item.linear_eoq_forecast = reg.coef_.item()*90.0
-            
+            item.linear_eoq_forecast = reg.coef_.item()*90.0            
             item.linear_eoq_r2 = reg.score(X, y)
 
             residuals = [ abs(x.score - reg.coef_.item()*day_index[i]) for i, x in enumerate(quad_returns) ]
@@ -75,7 +74,13 @@ class QuadReturn(models.Model):
 
             updated_items.append(item)
 
-        cls.objects.bulk_update(updated_items, ['linear_eoq_forecast', 'linear_eoq_r2', 'linear_eoq_95pct'], batch_size = QUAD_RETURN_BATCH_SIZE)
+            # manually batching to reduce memory usage
+            if len(updated_items) >= QUAD_RETURN_BATCH_SIZE:
+                cls.objects.bulk_update(updated_items, ['linear_eoq_forecast', 'linear_eoq_r2', 'linear_eoq_95pct'])
+                updated_items = list()
+
+        if updated_items:
+            cls.objects.bulk_update(updated_items, ['linear_eoq_forecast', 'linear_eoq_r2', 'linear_eoq_95pct'])
 
     @classmethod
     def update(cls):
