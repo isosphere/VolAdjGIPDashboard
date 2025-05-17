@@ -157,7 +157,7 @@ def all_symbol_summary(quad_allocation, latest_date):
                     '--.--' if not current_score else current_score,
                     100*last_week_vol,    
                     r_squared,
-                    current_performance.linear_eoq_forecast,
+                    current_performance.linear_eoq_forecast if current_performance else '--.--',
                 ]
             else:
                 symbol_values[symbol] = [
@@ -166,7 +166,7 @@ def all_symbol_summary(quad_allocation, latest_date):
                     '--.--' if not current_score else current_score,
                     '--.--', 
                     r_squared,
-                    current_performance.linear_eoq_forecast,                    
+                    current_performance.linear_eoq_forecast if current_performance else '--.--',
                 ]
 
     return symbol_values
