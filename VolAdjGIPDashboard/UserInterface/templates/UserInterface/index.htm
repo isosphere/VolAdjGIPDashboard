@@ -714,7 +714,8 @@
                     paging: false,
                     searching: false,
                     columnDefs: [
-                        { type: 'formatted-num', targets: 1},
+                        { type: 'formatted-num', targets: [1, 2, 3, 5]},
+                        { type: 'abs-perc', targets: 4}
                     ]
                 });
                 $('#cftc-cot').DataTable({
@@ -725,5 +726,23 @@
                     ]
                 });
             });
+
+            function stripR2(x) {
+                x = Math.abs(parseInt(x.replace(/\D/g, '')));
+
+                if (isNaN(x)) {
+                    return 0;
+                } else {
+                    return x;
+                }
+            }
+
+            $.fn.dataTable.ext.type.order['abs-perc-asc'] = function(x,y) {
+                return stripR2(x) >= stripR2(y)
+            };
+
+            $.fn.dataTable.ext.type.order['abs-perc-desc'] = function(x,y) {
+                return stripR2(y) >= stripR2(x)
+            };            
         </script>
 {% endblock %}
