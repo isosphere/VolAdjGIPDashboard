@@ -492,7 +492,7 @@ class SecurityHistory(models.Model):
         cls.update_quad_return(tickers=[[x] for x in tickers])
 
     def __str__(self):
-        return f"{self.ticker} on {self.date} was {self.close_price}"
+        return f"{self.ticker} on {self.date} was ${self.close_price:.2f}"
 
     class Meta:
         abstract = True
@@ -613,7 +613,7 @@ class YahooHistory(SecurityHistory):
                 obj.save()
 
     def __str__(self):
-        return f"{self.ticker} on {self.date} was {self.close_price} with 1-week vol {self.realized_volatility}"
+        return f"{self.ticker} on {self.date} was ${self.close_price:.2f} with 1-week vol {100*self.realized_volatility:.2f}% "
 
     class Meta:
         unique_together = [['ticker', 'date']]
