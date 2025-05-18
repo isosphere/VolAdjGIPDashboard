@@ -47,7 +47,8 @@ class QuadReturn(models.Model):
         updated_items = list()
 
         for item in cls.objects.filter(linear_eoq_95pct__isnull=True):
-            quad_returns = cls.objects.filter(quarter_end_date=item.quarter_end_date, label=item.label, quad_stdev__gt=0, data_end_date__lte=item.data_end_date)\
+            quad_returns = cls.objects\
+                .filter(quarter_end_date=item.quarter_end_date, label=item.label, quad_stdev__gt=0, data_end_date__lte=item.data_end_date)\
                 .order_by('data_end_date')\
                 .annotate(score=F('quad_return')/F('quad_stdev'))
             

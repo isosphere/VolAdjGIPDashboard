@@ -9,6 +9,7 @@ class Command(BaseCommand):
         GDPForecast.update()
         YahooHistory.update()
         YahooHistory.calculate_stats()
+        YahooHistory.update_quad_return()
         QuadReturn.update()
 
         QuadForecasts.update()
