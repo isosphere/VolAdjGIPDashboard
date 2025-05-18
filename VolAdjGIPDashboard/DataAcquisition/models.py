@@ -100,6 +100,7 @@ class SecurityHistory(models.Model):
     updated = models.DateTimeField(auto_now=True)
     realized_volatility = models.FloatField(null=True) 
 
+    # this is very slow.
     @classmethod
     def quad_return(cls, tickers, date_within_quad):
         logger = logging.getLogger('SecurityHistory.quad_return')
@@ -186,7 +187,7 @@ class SecurityHistory(models.Model):
 
     @classmethod
     def core_tickers(cls):
-        return list(map(lambda x: [x.upper()], cls.objects.values_list('ticker', flat=True).distinct()))
+        return [ [x.upper()] for x in cls.objects.values_list('ticker', flat=True).distinct() ]
 
     @classmethod
     def update_quad_return(cls, first_date=None, ticker=None, tickers=None, full_run=False):
@@ -549,12 +550,14 @@ class SecurityHistory(models.Model):
 class YahooHistory(SecurityHistory):
     @classmethod
     def core_tickers(cls):
-        tickers = list(map(lambda x: [x.upper()], cls.objects.values_list('ticker', flat=True).distinct()))
+        tickers = [ [x.upper()] for x in cls.objects.values_list('ticker', flat=True).distinct() ]
         tickers.append(['QQQ', 'XLF', 'XLI'])
         tickers.append(['TLT', 'UUP', 'VPU'])
         tickers.append(['GLD', 'VPU'])
+        
         for ticker in ('CAD=X', 'SPY', 'DJP', 'XLE', 'GLD', 'VTI', 'VEU'):
-            tickers.append([ticker.upper()])
+            if [ticker] not in tickers:
+                tickers.append([ticker.upper()])
 
         return tickers
     
