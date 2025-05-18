@@ -14,6 +14,7 @@ from django.conf import settings
 from scipy import optimize as opt
 from sklearn.linear_model import LinearRegression
 import pandas_datareader.data as web
+from tqdm import tqdm
 import yfinance
 import quandl
 
@@ -200,7 +201,7 @@ class SecurityHistory(models.Model):
         first_date = first_date if first_date is not None else cls.objects.earliest('date').date
 
         logging.info("Latest date of data = %s.", latest_date)
-        for labels in tickers:
+        for labels in tqdm(tickers):
             sortable = labels
             sortable.sort()
             modified_label =  cls.__name__ + "_" + ','.join(sortable)
