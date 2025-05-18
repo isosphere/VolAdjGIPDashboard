@@ -249,7 +249,21 @@ class SecurityHistory(models.Model):
         pass
 
     @classmethod
-    def equal_volatility_position(cls, tickers, lookback=28, target_value=10000, max_date=None):
+    def equal_volatility_position(cls, tickers: list, lookback=28, target_value=10000, max_date=None) -> dict:
+        """ returns the target position count, per ticker, for a given target value.
+
+        Args:
+            tickers (_type_): _description_
+            lookback (int, optional): _description_. Defaults to 28.
+            target_value (int, optional): _description_. Defaults to 10000.
+            max_date (_type_, optional): _description_. Defaults to None.
+
+        Raises:
+            ValueError: _description_
+
+        Returns:
+            dict: {ticker: position_size, ...}
+        """        
         logger = logging.getLogger('SecurityHistory.equal_volatility_position')
         logger.debug("function triggered for tickers=[%s], lookback=%s, target_value=%s, max_date=%s", tickers, lookback, target_value, max_date)
 
@@ -260,6 +274,12 @@ class SecurityHistory(models.Model):
         max_price = None
 
         dataframe = cls.dataframe(max_date=max_date, tickers=tickers, lookback=lookback)
+        if len(tickers) == 1:
+            subset = dataframe[dataframe.index.get_level_values('ticker') == tickers[0]].dropna()
+            
+            return {
+                tickers[0]: math.floor(target_value / subset.iloc[-1].close_price)
+            }
 
         # compute realized vol
         dataframe["log_return"] = dataframe.groupby(level='ticker', group_keys=False).close_price.apply(np.log) - dataframe.groupby(level='ticker', group_keys=False).close_price.shift(1).apply(np.log)
