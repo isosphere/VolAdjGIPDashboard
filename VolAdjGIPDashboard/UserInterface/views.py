@@ -322,7 +322,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     net_liquidating_value = round(net_liquidating_value, 0)
 
     # time series data for quad return charts
-    quad_labels = ('YahooHistory_QQQ', 'YahooHistory_QQQ,XLF,XLI', 'YahooHistory_GLD,VPU', 'YahooHistory_TLT,UUP,VPU', 'YahooHistory_VTI', 'YahooHistory_GLD,TLT,UUP,VPU')
+    quad_labels = ('YahooHistory_QQQ', 'YahooHistory_QQQ,XLF,XLI', 'YahooHistory_GLD,VPU', 'YahooHistory_TLT,UUP,VPU')
     quad_returns = QuadReturn.objects.filter(quarter_end_date=quarter_end_date, label__in=quad_labels).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev'))
     prior_quad_returns = QuadReturn.objects.filter(quarter_end_date=prior_quad_end_date, label__in=quad_labels).order_by('label', 'data_end_date').annotate(score=F('quad_return')/F('quad_stdev'))
 
@@ -335,11 +335,6 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         quad_ticker_lookup[expected_label] = quad
     
     quad_performance = dict()
-    
-    fear_timeseries = list()
-    fear_idx = dict()
-    brave_timeseries = list()
-    brave_idx = dict()
 
     for ticker_lookup, date, score in quad_returns.values_list('label', 'data_end_date', 'score'):
         try:
@@ -354,21 +349,6 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
                 quad_performance[quad] = list()
             
             quad_performance[quad].append((current_day, round(score, 2)))
-
-        if quad == 1:
-            if current_day not in brave_idx:
-                brave_timeseries.append([current_day, score])
-                brave_idx[current_day] = len(brave_timeseries) - 1
-            else:
-                if current_day == brave_timeseries[-1][0]:
-                    brave_timeseries[brave_idx[current_day]][1] += score
-                
-        elif ticker_lookup == 'YahooHistory_GLD,TLT,UUP,VPU':
-            if current_day not in fear_idx:
-                fear_timeseries.append([current_day, score])
-                fear_idx[current_day] = len(fear_timeseries) - 1
-            else:
-                fear_timeseries[fear_idx[current_day]][1] += score
 
     prior_quad_performance = dict()
     for ticker_lookup, date, score in prior_quad_returns.values_list('label', 'data_end_date', 'score'):
@@ -454,8 +434,6 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         'current_quad_return': current_quad_return,
         'prior_quad_return': prior_quad_return,
         'daily_return': weekly_return,
-        'fear_timeseries': fear_timeseries,
-        'brave_timeseries': brave_timeseries,
 
         'quad_performance': quad_performance,
         'prior_quad_performance': prior_quad_performance,

@@ -184,16 +184,6 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-sm">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Fear versus Complacency</h5>
-                            <div class="card-text">
-                                <canvas id="fear_metric"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
             <div class="row">
                 <div class="col-sm">
@@ -444,76 +434,6 @@
                     legend: {
                         display: true,
                         position: 'right'
-                    }
-                }
-            });
-        </script>
-        <script>
-            var ctx_risk = document.getElementById('fear_metric').getContext('2d');
-            var scatterChart = new Chart(ctx_risk, {
-                type: 'scatter',
-                data: {
-                    datasets: [
-                        {
-                            label: "Fear",
-                            data: [
-                                {% for datum in fear_timeseries %}
-                                {
-                                    x: {{datum.0}},
-                                    y: {{datum.1}}
-                                },
-                                {% endfor %}
-                            ],
-                            pointBackgroundColor: ['#ff0000'],
-                            backgroundColor: '#ff0000',
-                            borderColor: '#ff0000',
-                        },
-                        {
-                            label: "Complacency",
-                            data: [
-                                {% for datum in brave_timeseries %}
-                                {
-                                    x: {{datum.0}},
-                                    y: {{datum.1}}
-                                },
-                                {% endfor %}
-                            ],
-                            pointBackgroundColor: ['#00ff00'],
-                            backgroundColor: '#00ff00',
-                            borderColor: '#00ff00',
-                        },                        
-                    ]
-                },
-                options: {
-                    scales: {
-                        x: {
-                            type: 'linear',
-                            position: 'bottom',
-                            title: {
-                                text: "Quarter Depth",
-                                display: true
-                            },
-                            suggestedMax: 90.0,
-                            suggestedMin: 0.0,
-                            ticks: {
-                                stepSize: 1.0,
-                            }
-                        },
-                        y: {
-                            type: 'linear',
-                            title: {
-                                text: "Performance",
-                                display: true
-                            },
-                            suggestedMax: 25.0,
-                            suggestedMin: -25.0,
-                            ticks: {
-                                stepSize: 10.0,
-                            }
-                        }
-                    },
-                    legend: {
-                        display: true,
                     }
                 }
             });
