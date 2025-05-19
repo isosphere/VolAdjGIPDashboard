@@ -86,6 +86,13 @@ def classify_r2(r2: float | None) -> str:
     else:
         return "strong"
 
+quality_mapping = {
+    'none': 'alert-danger',
+    'weak': 'alert-warning',
+    'moderate': 'alert-primary',
+    'strong': 'alert-success',
+}
+
 def all_symbol_summary(quad_allocation, latest_date):
     """ returns something like:
 
@@ -170,6 +177,21 @@ def all_symbol_summary(quad_allocation, latest_date):
             else:
                 r_squared = None
 
+            r2_quality = classify_r2(r_squared)
+
+            # backtesting indicates you need some premium for it to be worth it
+            if current_performance and current_performance.linear_eoq_forecast and current_performance.linear_eoq_forecast - current_score < 1.5:
+                if r2_quality in ("moderate", "strong"):
+                    r2_quality = "weak"
+                else:
+                    r2_quality = "none"
+            
+            r2_quality = quality_mapping[r2_quality]
+            
+            # backtesting indicates that trading off a linear regression for these is dumb
+            if symbol in ("GLD", "DJP"):
+                r2_quality = "none"
+
             if last_week_vol is not None:
                 symbol_values[symbol] = [
                     group.__name__ + '_' + symbol,                    
@@ -178,7 +200,7 @@ def all_symbol_summary(quad_allocation, latest_date):
                     100*last_week_vol,    
                     r_squared,
                     current_performance.linear_eoq_forecast if current_performance else '--.--',
-                    classify_r2(r_squared)
+                    r2_quality
                 ]
             else:
                 symbol_values[symbol] = [
@@ -188,7 +210,7 @@ def all_symbol_summary(quad_allocation, latest_date):
                     '--.--', 
                     r_squared,
                     current_performance.linear_eoq_forecast if current_performance else '--.--',
-                    classify_r2(r_squared)
+                    r2_quality
                 ]
 
     return symbol_values

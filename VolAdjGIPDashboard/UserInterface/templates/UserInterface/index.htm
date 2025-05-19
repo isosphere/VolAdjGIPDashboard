@@ -243,7 +243,6 @@
                                         <th>Ratio</th>
                                         <th>Price</th>
                                         <th data-toggle="tooltip" data-placement="top" title="(over {{lookback}} trading weeks)">Realized 1-Week Volatility</th>
-                                        <th>Prior Q Linear R2</th>
                                         <th>Linear EOQ Ratio Forecast</th>
                                     </tr>
                                 </thead>
@@ -262,17 +261,9 @@
                                         {% else %}
                                         <td>{{value.3|floatformat:1}}%</td>
                                         {% endif %}
-                                        {% if value.6 == "none" %}
-                                        <td class="alert-danger">
-                                        {% elif value.6 == "weak" %}
-                                        <td class="alert-warning">
-                                        {% elif value.6 == "moderate" %}
-                                        <td class="alert-primary">
-                                        {% else %}
-                                        <td class="alert-success">
-                                        {% endif %}
-                                        {{value.4|floatformat:0}} %</td>
-                                        <td>{{value.5|floatformat:2}}</td>
+                                        <td class="{{value.6}}">
+                                            {{value.5|floatformat:2}}
+                                        </td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -634,35 +625,35 @@
                     paging: false,
                     searching: false,
                     columnDefs: [
-                        { type: 'formatted-num', targets: [1, 2, 3, 5]},
-                        { type: 'abs-perc', targets: 4}
+                        { type: 'formatted-num', targets: [1, 2, 4]},
+                        //{ type: 'abs-perc', targets: 4}
                     ]
                 });
-                $('#cftc-cot').DataTable({
-                    paging: false,
-                    searching: false,
-                    columnDefs: [
-                        { type: 'formatted-num', targets: "_all"},
-                    ]
-                });
+                // $('#cftc-cot').DataTable({
+                //     paging: false,
+                //     searching: false,
+                //     columnDefs: [
+                //         { type: 'formatted-num', targets: "_all"},
+                //     ]
+                // });
             });
 
-            function stripR2(x) {
-                x = Math.abs(parseInt(x.replace(/\D/g, '')));
+            // function stripR2(x) {
+            //     x = Math.abs(parseInt(x.replace(/\D/g, '')));
 
-                if (isNaN(x)) {
-                    return 0;
-                } else {
-                    return x;
-                }
-            }
+            //     if (isNaN(x)) {
+            //         return 0;
+            //     } else {
+            //         return x;
+            //     }
+            // }
 
-            $.fn.dataTable.ext.type.order['abs-perc-asc'] = function(x,y) {
-                return stripR2(x) >= stripR2(y)
-            };
+            // $.fn.dataTable.ext.type.order['abs-perc-asc'] = function(x,y) {
+            //     return stripR2(x) >= stripR2(y)
+            // };
 
-            $.fn.dataTable.ext.type.order['abs-perc-desc'] = function(x,y) {
-                return stripR2(y) >= stripR2(x)
-            };            
+            // $.fn.dataTable.ext.type.order['abs-perc-desc'] = function(x,y) {
+            //     return stripR2(y) >= stripR2(x)
+            // };            
         </script>
 {% endblock %}
