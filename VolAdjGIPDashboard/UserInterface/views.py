@@ -288,7 +288,7 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         current_weekly_return = YahooHistory.weekly_return(quad_allocation[quad])
         weekly_return[quad] = current_weekly_return*100 if current_weekly_return is not None else None
 
-    latest_date = YahooHistory.objects.latest('date').date
+    latest_date = YahooHistory.objects.filter(ticker__in=('SPY', 'TLT')).latest('date').date
 
     symbol_values = all_symbol_summary(quad_allocation, latest_date)
 

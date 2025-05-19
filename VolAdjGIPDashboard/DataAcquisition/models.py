@@ -39,6 +39,9 @@ class QuadReturn(models.Model):
     linear_eoq_r2 = models.FloatField(null=True)
     linear_eoq_95pct = models.FloatField(null=True)
 
+    def __str__(self):
+        return f"{self.label} between {self.data_start_date} and {self.data_end_date} (Q={self.quarter_end_date}) returned {100*self.quad_return:.2f}% with a stdev of {100*self.quad_stdev:.2f}% "
+    
     @classmethod
     def clear_models(cls):
         cls.objects.update(linear_eoq_forecast=None, linear_eoq_r2=None, linear_eoq_95pct=None)
