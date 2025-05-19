@@ -201,14 +201,13 @@ class SecurityHistory(models.Model):
         elif ticker is not None:
             tickers = [[ticker,]]
 
-        latest_date = cls.objects.latest('date').date
-        first_date = first_date if first_date is not None else cls.objects.earliest('date').date
-
-        logging.info("Latest date of data = %s.", latest_date)
         for labels in tqdm(tickers):
             sortable = labels
             sortable.sort()
             modified_label =  cls.__name__ + "_" + ','.join(sortable)
+
+            latest_date = cls.objects.filter(ticker__in=labels).latest('date').date
+            first_date = first_date if first_date is not None else cls.objects.filter(ticker__in=labels).earliest('date').date
 
             try:
                 existing_data_start = QuadReturn.objects.filter(label=modified_label).latest('data_end_date')
