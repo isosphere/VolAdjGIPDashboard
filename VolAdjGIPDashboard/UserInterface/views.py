@@ -180,7 +180,7 @@ def all_symbol_summary(quad_allocation, latest_date):
             r2_quality = classify_r2(r_squared)
 
             # backtesting indicates you need some premium for it to be worth it
-            if current_performance and current_performance.linear_eoq_forecast and current_performance.linear_eoq_forecast - current_score < 1.5:
+            if current_performance and current_performance.linear_eoq_forecast and abs(current_performance.linear_eoq_forecast - current_score) < 1.5:
                 if r2_quality in ("moderate", "strong"):
                     r2_quality = "weak"
                 else:
