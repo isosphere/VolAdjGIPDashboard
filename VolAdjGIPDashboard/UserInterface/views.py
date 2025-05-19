@@ -186,11 +186,11 @@ def all_symbol_summary(quad_allocation, latest_date):
                 else:
                     r2_quality = "none"
             
-            r2_quality = quality_mapping[r2_quality]
-            
             # backtesting indicates that trading off a linear regression for these is dumb
             if symbol in ("GLD", "DJP"):
                 r2_quality = "none"
+
+            r2_quality = quality_mapping[r2_quality]
 
             if last_week_vol is not None:
                 symbol_values[symbol] = [
