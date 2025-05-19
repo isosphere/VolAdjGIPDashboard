@@ -585,6 +585,22 @@
                     ]
                 },
                 options: {
+                    plugins: {
+                        autocolors: false,
+                        annotation: {
+                            annotations: [
+                                {
+                                    type: 'line',
+                                    yMin: -1000,
+                                    yMax: 1000,
+                                    xMin: 85,
+                                    xMax: 85,
+                                    borderColor: 'rgb(127, 0, 0)',
+                                    borderWidth: 2,
+                                },  
+                            ]
+                        }
+                    },                    
                     scales: {
                         x: {
                             type: 'linear',

@@ -26,7 +26,8 @@
         </div>
     </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.0/dist/Chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.0.0/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.0.2/dist/chartjs-plugin-annotation.min.js"></script>
 <script>
     var ctx_score = document.getElementById('quad_performance').getContext('2d');
     var scatterChart = new Chart(ctx_score, {
@@ -129,34 +130,47 @@
             plugins: {
                 filler: {
                     propagate: false,
-                }
+                },
+                annotation: {
+                    annotations: [
+                        {
+                            type: 'line',
+                            yMin: -1000,
+                            yMax: 1000,
+                            xMin: 85,
+                            xMax: 85,
+                            borderColor: 'rgb(127, 0, 0)',
+                            borderWidth: 2,
+                        },  
+                    ]
+                },         
             },
             scales: {
-                xAxes: [{
+                x: {
                     type: 'linear',
                     position: 'bottom',
-                    scaleLabel: {
-                        labelString: "Quarter Depth",
+                    title: {
+                        text: "Quarter Depth",
                         display: true
                     },
+                    suggestedMax: 90.0,
+                    suggestedMin: 0.0,
                     ticks: {
-                        suggestedMax: 90.0,
-                        suggestedMin: 0.0,
                         stepSize: 5.0,
                     }
-                }],
-                yAxes: [{
+                },
+                y: {
                     type: 'linear',
-                    scaleLabel: {
-                        labelString: "Ratio",
+                    title: {
+                        text: "Ratio",
                         display: true
                     },
+                    suggestedMax: 25.0,
+                    suggestedMin: -25.0,                    
                     ticks: {
-                        suggestedMax: 25.0,
-                        suggestedMin: -25.0,
                         stepSize: 5.0,
                     }
-                }]
+                }
             },
             legend: {
                 display: true,
