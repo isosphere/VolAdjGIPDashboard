@@ -136,7 +136,7 @@ class SecurityHistory(models.Model):
         except QuadReturn.DoesNotExist:
             pass
 
-        distinct_dates = history.values('date').distinct().values_list('date', flat=True)
+        distinct_dates = list(history.values('date').distinct().values_list('date', flat=True))
         
         prior_positioning = None
         prior_cost_basis = dict()
@@ -165,7 +165,26 @@ class SecurityHistory(models.Model):
         end_market_value = market_value
 
         quad_return = end_market_value / start_market_value - 1
-        quad_stdev = pd.DataFrame(market_value_history).pct_change().std(ddof=1).values[0]
+
+        # calculate weighted-average rolling volatility
+        temp_sum = 0.0
+        temp_divider = 0.0
+
+        for leg, quantity in prior_positioning.items():
+            vol = history.get(ticker=leg, date=distinct_dates[-1]).realized_volatility
+
+            if vol is None:
+                temp_sum = None
+                break
+            else:
+                temp_sum += vol * quantity
+                temp_divider += quantity
+        
+        quad_stdev = temp_sum/temp_divider if temp_sum is not None else np.inf
+
+        # calculate in-quarter volatility
+        #quad_stdev = pd.DataFrame(market_value_history).pct_change().std(ddof=1).values[0]
+        
         quad_stdev = quad_stdev if np.isfinite(quad_stdev) else 1.0
         
         QuadReturn.objects.filter(
