@@ -8,8 +8,9 @@ class Command(BaseCommand):
         parser.add_argument('ticker', type=str)
 
     def handle(self, *args, **options):
-        from DataAcquisition.models import YahooHistory
+        from DataAcquisition.models import YahooHistory, QuadReturn
         
         YahooHistory.update(tickers=(options['ticker'],))   
         YahooHistory.calculate_stats()
-        YahooHistory.update_quad_return(ticker=options['ticker'])
+        YahooHistory.update_quad_return(ticker=options['ticker'], full_run=True)
+        QuadReturn.update()
