@@ -29,6 +29,7 @@ tqdm = "^4.67.1"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.16.0"
+matplotlib = "^3.10.3"
 
 [build-system]
 requires = ["poetry-core"]
