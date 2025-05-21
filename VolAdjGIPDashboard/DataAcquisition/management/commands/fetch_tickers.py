@@ -10,14 +10,14 @@ class Command(BaseCommand):
         from DataAcquisition.models import YahooHistory, QuadReturn
 
         if isinstance(options['ticker'], str):
-            tickers = [options['ticker'], ]
+            tickers = [ options['ticker'].upper() ]
         else:
-            tickers = options['ticker']
+            tickers = [ x.upper() for x in options['ticker'] ]
         
         YahooHistory.update(tickers=tickers, clobber=True)   
         YahooHistory.calculate_stats()
 
-        tickers = [ [x,] for x in tickers ]
+        tickers = [ [ x ] for x in tickers ]
 
         YahooHistory.update_quad_return(tickers=tickers, full_run=True)
         QuadReturn.update()
