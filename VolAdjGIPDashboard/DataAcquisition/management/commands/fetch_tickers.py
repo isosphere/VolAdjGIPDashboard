@@ -16,5 +16,8 @@ class Command(BaseCommand):
         
         YahooHistory.update(tickers=tickers, clobber=True)   
         YahooHistory.calculate_stats()
-        YahooHistory.update_quad_return(tickers=[tickers], full_run=True)
+
+        tickers = [ [x,] for x in tickers ]
+
+        YahooHistory.update_quad_return(tickers=tickers, full_run=True)
         QuadReturn.update()
