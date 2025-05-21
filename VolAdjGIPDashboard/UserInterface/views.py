@@ -418,35 +418,6 @@ def index(request, default_net_liquidating_value=10000, default_currency='USD'):
         except QuadReturn.DoesNotExist:
             performance_change[quad]  = '--.-'
     
-    # signal_data = SignalTimeSeries.objects.filter(
-    #     target_date__day=quarter_end_date.day,
-    #     target_date__month=quarter_end_date.month,
-    #     target_date__year=quarter_end_date.year,
-    #     analysis_label__contains='market_continuous_multinormal_functional.r .posterior_bullishness'
-    # ).order_by('ticker', 'run_time')
-
-    # selected_tickers = {'QQQ', 'XLF', 'XLI', 'SPY', 'GLD', 'XLU', 'TLT', 'CAD=X'}
-
-    # signal_structure = {}
-    # for ticker in set(signal_data.values_list('ticker', flat=True)):
-    #     if ticker in selected_tickers:
-    #         signal_structure[ticker] = []
-    #         for row in signal_data.filter(ticker__contains=ticker):
-    #             signal_structure[ticker].append({
-    #                 'timestamp': row.run_time,
-    #                 'signal': row.signal
-    #             })
-    #     symbol_values[ticker].append(
-    #         round(100*signal_data.filter(ticker__contains=ticker).latest('run_time').signal, 1)
-    #     )
-
-    # max_position = round(SignalTimeSeries.objects.filter(
-    #     target_date__day=quarter_end_date.day,
-    #     target_date__month=quarter_end_date.month,
-    #     target_date__year=quarter_end_date.year,
-    #     analysis_label__contains='market_continuous_multinormal_functional.r .max_position'
-    # ).latest('run_time').signal*100, 1)
-    
     return render(request, 'UserInterface/index.htm', {
         'current_quad_return': current_quad_return,
         'prior_quad_return': prior_quad_return,
@@ -478,7 +449,4 @@ def index(request, default_net_liquidating_value=10000, default_currency='USD'):
         'prior_quad': prior_quad_guess,
 
         'GOOGLE_ID': settings.GOOGLE_ID,
-
-        # 'signal_data': signal_structure,
-        #'max_position': max_position
     })
