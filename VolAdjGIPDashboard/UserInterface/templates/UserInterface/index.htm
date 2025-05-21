@@ -61,8 +61,10 @@
                                         <tr>
                                             <th>Season</th>
                                             <th data-toggle="tooltip" data-placement="top" title="Cumulative since quarter start">Return</th>
-                                            <th data-toggle="tooltip" data-placement="top" title="Since quarter start">σ</th>
+                                            <th data-toggle="tooltip" data-placement="top" title="Wtd Avg 28d">σ</th>
                                             <th data-toggle="tooltip" data-placement="top" title="return / standard deviation">Ratio</th>
+                                            <th>Forecast</th>
+                                            <th>WTD</th>
                                         </tr>
                                     </thead>
                                     {% for quad, value in current_quad_return.items %}
@@ -90,85 +92,33 @@
                                             {% endif %}
                                         </td>
                                         {% endfor %}
+                                        <td>
+                                            {% if quad == 1 %}
+                                                {{current_regressions.1|floatformat:1}}
+                                            {% elif quad == 2 %}
+                                                {{current_regressions.2|floatformat:1}}
+                                            {% elif quad == 3 %}
+                                                {{current_regressions.3|floatformat:1}}
+                                            {% elif quad == 4 %}
+                                                {{current_regressions.4|floatformat:1}}
+                                            {% endif %}
+                                        </td>  
+                                        <td>
+                                            {% if quad == 1 %}
+                                                {{performance_change.1|floatformat:1}}
+                                            {% elif quad == 2 %}
+                                                {{performance_change.2|floatformat:1}}
+                                            {% elif quad == 3 %}
+                                                {{performance_change.3|floatformat:1}}
+                                            {% elif quad == 4 %}
+                                                {{performance_change.4|floatformat:1}}
+                                            {% endif %}
+                                        </td>                                                                                                                      
                                     </tr>
                                     {% endfor %}
                                 </table>
                                 <ul>
                                     <li>{{current_quad_start}} - present</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-sm">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">This Week</h5>
-                            <div class="card-text">
-                                <table class="table">
-                                    <thead class="thead-dark">
-                                        <tr>
-                                            <th>Season</th>
-                                            <th>Return</th>
-                                            <th>Ratio Change</th>
-                                        </tr>
-                                    </thead>
-                                    {% for quad, value in daily_return.items %}
-                                    {% if quad == current_quad %}
-                                    <tr class="table-info">
-                                    {% else %}
-                                    <tr>
-                                    {% endif %}
-                                        <td>{{quad}}</td>
-                                        {% if value < 0 %}
-                                        <td class="text-danger">
-                                        {% else %}
-                                        <td class="text-success">
-                                        {% endif %}
-                                            {{value|floatformat:1}}%
-                                        </td>
-                                        {% if quad == 1 %}
-                                        {% if performance_change.1 < 0 %}
-                                        <td class="text-danger">
-                                        {% else %}
-                                        <td class="text-success">
-                                        {% endif %}
-                                        {{performance_change.1}}
-                                        {% elif quad == 2 %}
-                                        {% if performance_change.2 < 0 %}
-                                        <td class="text-danger">
-                                        {% else %}
-                                        <td class="text-success">
-                                        {% endif %}
-                                        {{performance_change.2}}
-                                        {% elif quad == 3 %}
-                                        {% if performance_change.3 < 0 %}
-                                        <td class="text-danger">
-                                        {% else %}
-                                        <td class="text-success">
-                                        {% endif %}
-                                        {{performance_change.3}}
-                                        {% elif quad == 4 %}
-                                        {% if performance_change.4 < 0 %}
-                                        <td class="text-danger">
-                                        {% else %}
-                                        <td class="text-success">
-                                        {% endif %}
-                                        {{performance_change.4}}
-                                        {% elif quad == 'Market' %}
-                                        {% if performance_change.Market < 0 %}
-                                        <td class="text-danger">
-                                        {% else %}
-                                        <td class="text-success">
-                                        {% endif %}
-                                        {{performance_change.Market}}
-                                        {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </table>
-                                <ul>
-                                    <li>{{latest_date}}</li>
                                 </ul>
                             </div>
                         </div>
@@ -242,7 +192,7 @@
                                         <th>Symbol</th>
                                         <th>Ratio</th>
                                         <th>Price</th>
-                                        <th data-toggle="tooltip" data-placement="top" title="(over {{lookback}} trading weeks)">Realized 1-Week Volatility</th>
+                                        <th data-toggle="tooltip" data-placement="top" title="(over 28d)">Realized 1-Week Volatility</th>
                                         <th>Linear EOQ Ratio Forecast</th>
                                     </tr>
                                 </thead>

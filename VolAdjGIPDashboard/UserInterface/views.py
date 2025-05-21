@@ -264,7 +264,7 @@ def quad_performance_summary(quad_allocation, prior_quad_end_date, current_quad_
     return current_quad_return, prior_quad_return
 
 
-def index(request, default_net_liquidating_value=10000, lookback=52, default_currency='USD'):
+def index(request, default_net_liquidating_value=10000, default_currency='USD'):
     # For our little 4-quad chart
     current_date = datetime.date.today()
     quarter_int = (current_date.month - 1) // 3 + 1 
@@ -304,11 +304,6 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         4: ['VPU', 'TLT', 'UUP'],
 #        'Market': ['VTI',]
     }
-
-    weekly_return = dict()
-    for quad in quad_allocation:
-        current_weekly_return = YahooHistory.weekly_return(quad_allocation[quad])
-        weekly_return[quad] = current_weekly_return*100 if current_weekly_return is not None else None
 
     latest_date = YahooHistory.objects.filter(ticker__in=('SPY', 'TLT')).latest('date').date
 
@@ -455,7 +450,6 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
     return render(request, 'UserInterface/index.htm', {
         'current_quad_return': current_quad_return,
         'prior_quad_return': prior_quad_return,
-        'daily_return': weekly_return,
 
         'quad_performance': quad_performance,
         'prior_quad_performance': prior_quad_performance,
@@ -469,7 +463,6 @@ def index(request, default_net_liquidating_value=10000, lookback=52, default_cur
         'target_value': net_liquidating_value,
         'data_updated': data_updated,
         'symbol_values': symbol_values,
-        'lookback': lookback,
 
         'roc_data': quad_guesses,
         'latest_gdp_origin': latest_gdp_origin,
