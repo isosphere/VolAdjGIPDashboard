@@ -14,7 +14,7 @@ class Command(BaseCommand):
         else:
             tickers = options['ticker']
         
-        YahooHistory.update(tickers=tickers,)   
+        YahooHistory.update(tickers=tickers, clobber=True)   
         YahooHistory.calculate_stats()
         YahooHistory.update_quad_return(tickers=[tickers], full_run=True)
         QuadReturn.update()
