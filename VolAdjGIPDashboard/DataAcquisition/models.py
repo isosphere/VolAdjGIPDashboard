@@ -178,11 +178,7 @@ class SecurityHistory(models.Model):
                 temp_sum += vol * quantity
                 temp_divider += quantity
         
-        quad_stdev = temp_sum/temp_divider if temp_sum is not None else np.inf
-
-        # calculate in-quarter volatility
-        #quad_stdev = pd.DataFrame(market_value_history).pct_change().std(ddof=1).values[0]
-        
+        quad_stdev = temp_sum/temp_divider if temp_sum is not None else np.inf       
         quad_stdev = quad_stdev if np.isfinite(quad_stdev) else 1.0
         
         QuadReturn.objects.filter(
