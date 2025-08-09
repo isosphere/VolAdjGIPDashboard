@@ -190,17 +190,16 @@
                                 <thead class="thead-dark">
                                     <tr>
                                         <th>Symbol</th>
-                                        <th>Ratio</th>
                                         <th>Price</th>
                                         <th data-toggle="tooltip" data-placement="top" title="(over 28d)">Realized 1-Week Volatility</th>
-                                        <th>Linear EOQ Ratio Forecast</th>
+                                        <th>QTD Return</th>
+                                        <th>EOQ Return Forecast</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for symbol, value in symbol_values.items %}
                                     <tr>
                                         <td><a href="/performance/{{value.0}}">{{symbol}}</a></td>
-                                        <td>{{value.2|floatformat:1}}</td>
                                         <td class="alert-primary">${{value.1|floatformat:2}}</td>
                                         {% if value.3 < 2.9 %}
                                         <td class="alert-success">{{value.3|floatformat:1}}%</td>
@@ -211,8 +210,9 @@
                                         {% else %}
                                         <td>{{value.3|floatformat:1}}%</td>
                                         {% endif %}
+                                        <td>{{value.2|floatformat:1}}%</td>
                                         <td class="{{value.6}}" data-toggle="tooltip" data-placement="top" title="R2={{value.4|floatformat:1}}%">
-                                            {{value.5|floatformat:2}}
+                                            {{value.5}}%
                                         </td>
                                     </tr>
                                     {% endfor %}

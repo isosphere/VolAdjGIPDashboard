@@ -196,20 +196,20 @@ def all_symbol_summary(quad_allocation, latest_date):
                 symbol_values[symbol] = [
                     group.__name__ + '_' + symbol,                    
                     symbol_data.close_price, 
-                    '--.--' if not current_score else current_score,
+                    '--.--' if not current_score else round(100*current_performance.quad_stdev*current_score,0),
                     100*last_week_vol,    
                     r_squared,
-                    current_performance.linear_eoq_forecast if current_performance else '--.--',
+                    round(100*current_performance.quad_stdev*current_performance.linear_eoq_forecast,0) if current_performance else '--.--',
                     r2_quality
                 ]
             else:
                 symbol_values[symbol] = [
                     group.__name__ + '_' + symbol,
                     symbol_data.close_price, 
-                    '--.--' if not current_score else current_score,
+                    '--.--' if not current_score else round(100*current_performance.quad_stdev*current_score,0),
                     '--.--', 
                     r_squared,
-                    current_performance.linear_eoq_forecast if current_performance else '--.--',
+                    round(100*current_performance.quad_stdev*current_performance.linear_eoq_forecast,0) if current_performance else '--.--',
                     r2_quality
                 ]
 
