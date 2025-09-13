@@ -276,7 +276,7 @@ def index(request, default_net_liquidating_value=10000, default_currency='USD'):
     latest_gdp_sigma, latest_cpi_sigma = quad_guesses[0].gdp_sigma, quad_guesses[0].cpi_sigma
     latest_gdp_origin, latest_cpi_origin = quad_guesses[0].gdp_origin, quad_guesses[0].cpi_origin
 
-    quad_guesses = quad_guesses[:3].values_list('date', 'gdp_roc', 'cpi_roc')
+    quad_guesses = quad_guesses[:10].values_list('date', 'gdp_roc', 'cpi_roc')
 
     # Position sizing inputs
     net_liquidating_value = request.POST.get('value', default_net_liquidating_value)
