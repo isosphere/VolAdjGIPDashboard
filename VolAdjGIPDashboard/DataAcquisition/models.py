@@ -608,7 +608,7 @@ class GDPForecast(models.Model):
         dataframe["Quarter"] = pd.to_datetime(dataframe.Quarter)
         dataframe.set_index('Quarter', inplace=True)
         
-        gdp_forecasts = dataframe.GDP.resample(rule='Q', level='Quarter').mean()
+        gdp_forecasts = dataframe.GDP.resample(rule='QE', level='Quarter').mean()
 
         for quarter, gdp in gdp_forecasts.items():
             cls.objects.update_or_create(
@@ -653,7 +653,7 @@ class CPIForecast(models.Model):
         dataframe["Quarter"] = pd.to_datetime(dataframe.Quarter)
         dataframe.set_index('Quarter', inplace=True)
         
-        cpi_forecasts = dataframe.CPI.resample(rule='Q', level='Quarter').mean()
+        cpi_forecasts = dataframe.CPI.resample(rule='QE', level='Quarter').mean()
 
         for quarter, cpi in cpi_forecasts.items():
             cls.objects.update_or_create(
@@ -765,12 +765,12 @@ class QuadForecasts(models.Model):
         # align the FRED quarterly dates to Pandas quarterly dates
         # each index value will be the last day of a quarter. i.e. 2019-06-30 is Q2 2019.
         gdp_data.index = gdp_data.index + pd.offsets.QuarterEnd(n=0)
-        gdp_data = gdp_data.resample('Q').asfreq()
+        gdp_data = gdp_data.resample('QE').asfreq()
 
         # CPI, all items, urban, not seasonally adjusted. Monthly.
         cpi_all_urban_unadjusted_data = web.get_data_fred('CPIAUCNS', start = start_date)['CPIAUCNS']
         cpi_all_urban_unadjusted_data.index = pd.to_datetime(cpi_all_urban_unadjusted_data.index)
-        cpi_data = cpi_all_urban_unadjusted_data.resample('Q').mean()
+        cpi_data = cpi_all_urban_unadjusted_data.resample('QE').mean()
 
         cpi_nowcasts = CPIForecast.dataframe()
         latest_date = cpi_nowcasts.date.max()
